@@ -1,8 +1,13 @@
 import fetch from "node-fetch";
-import fs from "fs";
-import path from "path";
 
-export async function generateVoice(text: string): Promise<string> {
+/**
+ * Streams voice audio directly from ElevenLabs.
+ * NO files written. NO disk usage.
+ */
+export async function streamVoice(
+  text: string,
+  res: any
+): Promise<void> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const voiceId = process.env.ELEVENLABS_VOICE_ID;
 
@@ -10,21 +15,14 @@ export async function generateVoice(text: string): Promise<string> {
     throw new Error("ElevenLabs config missing");
   }
 
-  const audioDir = path.join(process.cwd(), "public", "audio");
-  if (!fs.existsSync(audioDir)) {
-    fs.mkdirSync(audioDir, { recursive: true });
-  }
-
-  const fileName = `nofari-${Date.now()}.mp3`;
-  const filePath = path.join(audioDir, fileName);
-
   const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "xi-api-key": apiKey,
+        Accept: "audio/mpeg",
       },
       body: JSON.stringify({
         text,
@@ -37,12 +35,12 @@ export async function generateVoice(text: string): Promise<string> {
     }
   );
 
-  if (!response.ok) {
-    throw new Error("Voice generation failed");
+  if (!response.ok || !response.body) {
+    const errText = await response.text();
+    throw new Error(`ElevenLabs stream failed: ${errText}`);
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
-  fs.writeFileSync(filePath, buffer);
-
-  return `/audio/${fileName}`;
+  // ✅ Stream audio directly to client
+  res.setHeader("Content-Type", "audio/mpeg");
+  response.body.pipe(res);
 }
