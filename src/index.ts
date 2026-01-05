@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import chatRoutes from "./routes/chat.route.js";
 import voiceRoutes from "./routes/voice.route.js";
@@ -9,9 +9,9 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
 app.use("/chat", chatRoutes);
-app.use("/voice", voiceRoutes); // ✅ STREAMING VOICE
+app.use("/voice", voiceRoutes);
 
-app.get("/", (_req, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.send("NOFARI7 backend running.");
 });
 

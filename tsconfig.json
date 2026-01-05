@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "src",
+    "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    // 🔑 THIS IS THE FIX
+    "lib": ["ES2022"],
+
+    "types": ["node", "express"]
   },
-  "include": ["src/**/*"]
+  "include": ["src"]
 }

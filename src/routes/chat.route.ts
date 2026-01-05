@@ -1,11 +1,14 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { generateGroqReply } from "../services/groq.service.js";
 
 const router = Router();
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
-    const { message, memory } = req.body;
+    const { message, memory } = req.body as {
+      message?: string;
+      memory?: string;
+    };
 
     if (!message) {
       return res.status(400).json({ error: "Message required" });
