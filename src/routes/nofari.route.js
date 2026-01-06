@@ -12,20 +12,23 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Text required" });
     }
 
-    // 1️⃣ NOFARI THINKS (Groq)
+    // 1️⃣ NOFARI THINKS (TEXT)
     const reply = await generateGroqReply(text, memory);
 
-    // 2️⃣ NOFARI SPEAKS (ElevenLabs)
+    // 2️⃣ NOFARI SPEAKS (AUDIO BUFFER)
     const audioBuffer = await generateVoice(reply);
 
-    // 3️⃣ SEND AUDIO STREAM + TEXT HEADER (OPTION A)
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("X-NOFARI-TEXT", reply);
+    // 3️⃣ CONVERT AUDIO → BASE64
+    const audioBase64 = audioBuffer.toString("base64");
 
-    res.send(audioBuffer);
+    // 4️⃣ ALWAYS RETURN JSON (NO STREAMING)
+    res.status(200).json({
+      reply,
+      audio: audioBase64,
+    });
 
   } catch (err) {
-    console.error("NOFARI error:", err);
+    console.error("NOFARI backend error:", err);
     res.status(500).json({ error: "NOFARI failed" });
   }
 });
