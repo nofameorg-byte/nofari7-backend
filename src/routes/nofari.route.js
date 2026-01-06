@@ -9,16 +9,19 @@ router.post("/", async (req, res) => {
     const { text, memory } = req.body;
 
     if (!text) {
-      return res.status(400).json({ error: "Text is required" });
+      return res.status(400).json({ error: "Text required" });
     }
 
-    // NOFARI thinks
+    // 1️⃣ NOFARI THINKS (Groq)
     const reply = await generateGroqReply(text, memory);
 
-    // NOFARI speaks
+    // 2️⃣ NOFARI SPEAKS (ElevenLabs)
     const audioBuffer = await generateVoice(reply);
 
+    // 3️⃣ SEND AUDIO STREAM + TEXT HEADER (OPTION A)
     res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("X-NOFARI-TEXT", reply);
+
     res.send(audioBuffer);
 
   } catch (err) {
