@@ -1,0 +1,22 @@
+import { Router } from "express";
+import { generateGroqReply } from "../services/groq.service.js";
+
+const router = Router();
+
+router.post("/", async (req, res) => {
+  try {
+    const { message, memory } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message required" });
+    }
+
+    const reply = await generateGroqReply(message, memory);
+    res.json({ reply });
+  } catch (err) {
+    console.error("Chat error:", err);
+    res.status(500).json({ error: "Chat failed" });
+  }
+});
+
+export default router;
