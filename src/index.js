@@ -2,22 +2,15 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from "url";
 import nofariRoutes from "./routes/nofari.route.js";
 
 const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 app.use(cors());
 app.use(express.json());
 
-// 🔊 SERVE AUDIO FILES (CORRECT PATH)
-app.use(
-  "/audio",
-  express.static(path.join(__dirname, "public", "audio"))
-);
+// 🔊 SERVE AUDIO FILES
+app.use("/audio", express.static(path.join(process.cwd(), "public/audio")));
 
 app.use("/nofari", nofariRoutes);
 
