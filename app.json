@@ -33,6 +33,9 @@
         "projectId": "81210230-952f-45fa-9bcd-55f2551e6729"
       }
     },
-    "owner": "nofari"
+    "owner": "nofari",
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }
