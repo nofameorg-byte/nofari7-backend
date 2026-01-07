@@ -13,7 +13,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nofari.nofari7"
+      "bundleIdentifier": "com.nofari.nofari7",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.nofari.nofari7",
@@ -24,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/images/app-icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81210230-952f-45fa-9bcd-55f2551e6729"
+      }
     }
   }
 }
