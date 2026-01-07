@@ -17,6 +17,8 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 
+
+
 type Message = {
   id: string;
   role: "user" | "nofari";
