@@ -39,17 +39,16 @@ router.post("/", async (req, res) => {
 
     const audioBuffer = Buffer.from(await voiceRes.arrayBuffer());
 
-    // 3️⃣ SAVE MP3
+    // ✅ FIX: GUARANTEE DIRECTORY EXISTS
     const audioDir = path.join(process.cwd(), "public", "audio");
-    if (!fs.existsSync(audioDir)) {
-      fs.mkdirSync(audioDir, { recursive: true });
-    }
+    fs.mkdirSync(audioDir, { recursive: true });
 
+    // 3️⃣ SAVE MP3
     const fileName = `nofari-${Date.now()}.mp3`;
     const filePath = path.join(audioDir, fileName);
     fs.writeFileSync(filePath, audioBuffer);
 
-    // 4️⃣ RESPOND
+    // 4️⃣ RETURN URL
     res.json({
       reply,
       audioUrl: `/audio/${fileName}`,
