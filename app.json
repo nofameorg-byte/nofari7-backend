@@ -12,14 +12,10 @@
       "backgroundColor": "#020925"
     },
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.nofari.nofari7",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.nofari.nofari8",
+      "supportsTablet": false
     },
     "android": {
-      "package": "com.nofari.nofari7",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/app-icon.png",
         "backgroundColor": "#020925"
@@ -27,11 +23,6 @@
     },
     "web": {
       "favicon": "./assets/images/app-icon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "81210230-952f-45fa-9bcd-55f2551e6729"
-      }
     }
   }
 }
