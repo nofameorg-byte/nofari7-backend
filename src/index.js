@@ -8,10 +8,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// serve audio files publicly
-app.use("/audio", express.static(path.join(process.cwd(), "public/audio")));
+// ✅ FIX: serve the folder where MP3 files are actually written
+app.use(
+  "/audio",
+  express.static(path.join(process.cwd(), "src/public/audio"))
+);
 
-// 🔥 THIS IS THE IMPORTANT LINE
+// 🔥 NOFARI route
 app.use("/nofari", nofariRoute);
 
 // health check
