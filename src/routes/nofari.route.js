@@ -1,14 +1,10 @@
 import express from "express";
 import { generateGroqReply } from "../services/groq.service.js";
 import { generateVoice } from "../services/elevenlabs.service.js";
-import {
-  enableDailyCheckIn,
-  disableDailyCheckIn,
-} from "../services/checkin.service.js";
 
 const router = express.Router();
 
-/* 🔎 Detect check-in intent from user text */
+/* 🔎 Detect check-in intent */
 function detectCheckInIntent(text) {
   const msg = text.toLowerCase();
 
@@ -46,21 +42,13 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Text is required" });
     }
 
-    let checkInEnabled = null;
     const intent = detectCheckInIntent(text);
 
-    // 🔔 Handle daily check-in enable / disable
-    if (intent === "ENABLE") {
-      await enableDailyCheckIn("local-user");
-      checkInEnabled = true;
-    }
+    let checkInEnabled = null;
+    if (intent === "ENABLE") checkInEnabled = true;
+    if (intent === "DISABLE") checkInEnabled = false;
 
-    if (intent === "DISABLE") {
-      await disableDailyCheckIn("local-user");
-      checkInEnabled = false;
-    }
-
-    // 🧠 Get NOFARI reply
+    // 🧠 Groq ALWAYS runs now
     const reply = await generateGroqReply(text);
 
     // 🔊 Voice (unchanged)
