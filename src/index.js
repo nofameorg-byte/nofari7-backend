@@ -1,25 +1,25 @@
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import nofariRoutes from "./routes/nofari.route.js";
+import nofariRoute from "./routes/nofari.route.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// 🔊 SERVE AUDIO FILES
+// serve audio files publicly
 app.use("/audio", express.static(path.join(process.cwd(), "public/audio")));
 
-app.use("/nofari", nofariRoutes);
+// 🔥 THIS IS THE IMPORTANT LINE
+app.use("/nofari", nofariRoute);
 
-app.get("/", (_req, res) => {
+// health check
+app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
 
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
-  console.log(`🟢 NOFARI backend listening on port ${PORT}`);
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`NOFARI backend running on port ${PORT}`);
 });

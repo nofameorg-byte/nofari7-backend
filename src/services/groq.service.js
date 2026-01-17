@@ -1,43 +1,55 @@
 import fetch from "node-fetch";
 import { NOFARI_DIRECTIVES } from "../config/directives.js";
 
-const INTERNAL_LLM_ENDPOINT =
-  "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = "llama-3.1-70b-versatile";
 
-export async function generateGroqReply(userMessage, memoryContext) {
-  const apiKey = process.env.GROQ_API_KEY;
+if (!GROQ_API_KEY) {
+  throw new Error("GROQ_API_KEY missing");
+}
 
-  if (!apiKey) {
-    throw new Error("GROQ_API_KEY missing");
-  }
-
+export async function generateGroqReply(userText, memory = "") {
   const messages = [
-    { role: "system", content: NOFARI_DIRECTIVES },
-    ...(memoryContext
-      ? [{ role: "system", content: memoryContext }]
+    {
+      role: "system",
+      content: NOFARI_DIRECTIVES,
+    },
+    ...(memory
+      ? [
+          {
+            role: "system",
+            content: `Context (do not quote or mention): ${memory}`,
+          },
+        ]
       : []),
-    { role: "user", content: userMessage },
+    {
+      role: "user",
+      content: userText,
+    },
   ];
 
-  const response = await fetch(INTERNAL_LLM_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      temperature: 0.6,
-      messages,
-    }),
-  });
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 350,
+      }),
+    }
+  );
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Groq error: ${errorText}`);
+    throw new Error(await response.text());
   }
 
   const data = await response.json();
 
-  return data.choices[0].message.content;
+  return data.choices[0].message.content.trim();
 }
