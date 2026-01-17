@@ -51,10 +51,11 @@ router.post("/", async (req, res) => {
     // 🧠 Groq ALWAYS runs now
     const reply = await generateGroqReply(text);
 
-    // 🔊 Voice (unchanged)
+    // 🔊 Voice (DEBUG LOG ADDED)
     let audioUrl = null;
     try {
       audioUrl = await generateVoice(reply);
+      console.log("VOICE URL:", audioUrl);
     } catch (e) {
       console.warn("Voice generation failed:", e.message);
     }
