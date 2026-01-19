@@ -16,8 +16,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
+import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
 
-
+import {
+  scheduleDailyCheckIn,
+  cancelDailyCheckIn,
+} from "../services/checkinNotifications";
 
 type Message = {
   id: string;
@@ -26,7 +30,7 @@ type Message = {
 };
 
 const STORAGE_KEY = "nofari_messages";
-const BACKEND_URL = "https://nofari7-backend.onrender.com/nofari";
+const BACKEND_URL = `${process.env.EXPO_PUBLIC_API_URL}/nofari`;
 
 export default function NofariScreen() {
   const router = useRouter();
@@ -37,7 +41,16 @@ export default function NofariScreen() {
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const glowAnim = useRef(new Animated.Value(1)).current;
+  const listenAnim = useRef(new Animated.Value(0)).current;
   const soundRef = useRef<Audio.Sound | null>(null);
+
+  /* 🔒 Keep screen awake ONLY on chat screen */
+  useEffect(() => {
+    activateKeepAwake();
+    return () => {
+      deactivateKeepAwake();
+    };
+  }, []);
 
   /* 🔊 Audio mode */
   useEffect(() => {
@@ -76,7 +89,30 @@ export default function NofariScreen() {
     ).start();
   }, []);
 
-  /* 🔊 Play MP3 and block overlap */
+  /* 🎧 Listening bar animation */
+  useEffect(() => {
+    if (isSpeaking) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(listenAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(listenAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      listenAnim.stopAnimation();
+      listenAnim.setValue(0);
+    }
+  }, [isSpeaking]);
+
+  /* 🔊 Play MP3 */
   async function playAudioFromUrl(url: string) {
     if (soundRef.current) {
       try {
@@ -129,6 +165,15 @@ export default function NofariScreen() {
 
       const data = await res.json();
 
+      // 🔔 DAILY CHECK-IN HANDLING (SAFE + OPTIONAL)
+      if (data.checkInEnabled === true) {
+        await scheduleDailyCheckIn();
+      }
+
+      if (data.checkInEnabled === false) {
+        await cancelDailyCheckIn();
+      }
+
       setMessages((prev) => [
         {
           id: `${Date.now()}-n`,
@@ -177,15 +222,35 @@ export default function NofariScreen() {
         />
       </View>
 
+      {isSpeaking && (
+        <Animated.View
+          style={[
+            styles.listeningBar,
+            {
+              opacity: listenAnim,
+              transform: [
+                {
+                  scaleX: listenAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.3, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      )}
+
       <KeyboardAvoidingView
         style={styles.keyboardArea}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <FlatList
           data={messages}
           inverted
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.chatContent}
         />
 
@@ -201,10 +266,7 @@ export default function NofariScreen() {
             multiline
           />
           <TouchableOpacity
-            style={[
-              styles.sendBtn,
-              isSpeaking && { opacity: 0.5 },
-            ]}
+            style={[styles.sendBtn, isSpeaking && { opacity: 0.5 }]}
             onPress={sendMessage}
             disabled={isSpeaking}
           >
@@ -227,7 +289,6 @@ export default function NofariScreen() {
   );
 }
 
-/* STYLES — UNCHANGED */
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#020925" },
   header: { alignItems: "center", paddingVertical: 12 },
@@ -240,8 +301,19 @@ const styles = StyleSheet.create({
     opacity: 0.22,
   },
   logo: { width: 90, height: 90 },
+  listeningBar: {
+    height: 6,
+    backgroundColor: "#00ffc6",
+    marginHorizontal: 40,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
   keyboardArea: { flex: 1 },
-  chatContent: { paddingHorizontal: 14, paddingTop: 10 },
+  chatContent: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
   bubble: {
     maxWidth: "75%",
     padding: 14,

@@ -43,19 +43,13 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.sectionTitle}>Language</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardText}>
-            Tell NOFARI in the CHAT if you want English or Spanish.
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Voice Responses</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardText}>
-            Adjust your volume to mute or lower NOFARI&apos;s voice.
-          </Text>
-        </View>
+        {/* Instructions */}
+        <TouchableOpacity
+          style={styles.linkCard}
+          onPress={() => router.push("/instructions")}
+        >
+          <Text style={styles.linkText}>Instructions</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.linkCard}
@@ -86,19 +80,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#020925" },
   container: { padding: 20, paddingBottom: 40 },
-  sectionTitle: {
-    color: "#d6b24a",
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 10,
-    marginTop: 24,
-  },
-  card: {
-    backgroundColor: "#0b0b0b",
-    borderRadius: 16,
-    padding: 16,
-  },
-  cardText: { color: "#ffffff", fontSize: 16, lineHeight: 22 },
   linkCard: {
     backgroundColor: "#0b0b0b",
     borderRadius: 16,

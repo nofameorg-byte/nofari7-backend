@@ -2,27 +2,51 @@
   "expo": {
     "name": "NOFARI",
     "slug": "nofari",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "nofari",
     "userInterfaceStyle": "dark",
+
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#020925"
     },
+
     "ios": {
       "bundleIdentifier": "com.nofari.nofari8",
-      "supportsTablet": false
+      "buildNumber": "7",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
+
     "android": {
+      "package": "com.nofari.nofari8",
+      "versionCode": 7,
+      "softwareKeyboardLayoutMode": "resize",
+
+      "permissions": [
+        "INTERNET",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/app-icon.png",
         "backgroundColor": "#020925"
       }
     },
+
     "web": {
       "favicon": "./assets/images/app-icon.png"
+    },
+
+    "extra": {
+      "eas": {
+        "projectId": "81210230-952f-45fa-9bcd-55f2551e6729"
+      }
     }
   }
 }

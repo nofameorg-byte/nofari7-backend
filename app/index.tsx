@@ -11,9 +11,9 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "../lib/supabase";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -22,31 +22,17 @@ export default function IndexScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔒 Restore session on load (BLOCKED after logout/delete)
+  // 🔒 Respect logout / delete block
   useEffect(() => {
-    const restoreUser = async () => {
-      try {
-        const blockRestore = await AsyncStorage.getItem(
-          "nofari_block_restore"
-        );
-
-        // 🚫 If user intentionally came here, do NOT auto-restore
-        if (blockRestore === "true") {
-          await AsyncStorage.removeItem("nofari_block_restore");
-          return;
-        }
-
-        const saved = await supabase.from("users").select("email").limit(1);
-
-        if (saved.data && saved.data.length > 0) {
-          router.replace("/nofari");
-        }
-      } catch (err) {
-        console.error("Restore failed:", err);
+    const checkBlock = async () => {
+      const blocked = await AsyncStorage.getItem("nofari_block_restore");
+      if (blocked === "true") {
+        // user explicitly logged out or deleted
+        return;
       }
     };
 
-    restoreUser();
+    checkBlock();
   }, []);
 
   const handleTapIn = async () => {
@@ -66,9 +52,13 @@ export default function IndexScreen() {
     setLoading(false);
 
     if (error) {
+      console.error(error);
       setError("Unable to continue. Try again.");
       return;
     }
+
+    // 🔓 Clear block once user explicitly taps in
+    await AsyncStorage.removeItem("nofari_block_restore");
 
     router.replace("/nofari");
   };
@@ -78,7 +68,7 @@ export default function IndexScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <Image
-            source={require("../assets/images/app-icon.png")}
+            source={require("../assets/images/nofari2-logo.png")}
             style={styles.logo}
             resizeMode="contain"
           />
