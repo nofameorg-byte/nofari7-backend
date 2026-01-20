@@ -8,7 +8,7 @@ if (!GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY missing");
 }
 
-// 🔍 Slang detector (INTENTIONAL + LIMITED)
+// 🔍 Slang detector (STRICT + TURN-BASED)
 function usesSlang(text) {
   const slangTriggers = [
     "nah",
@@ -31,52 +31,43 @@ function usesSlang(text) {
 export async function generateGroqReply(userText, memory = "") {
   const slangMode = usesSlang(userText);
 
-  const messages = [
-    {
+  // ✅ ALWAYS build messages as a clean array
+  const messages = [];
+
+  // Base identity + personality
+  messages.push({
+    role: "system",
+    content: NOFARI_DIRECTIVES,
+  });
+
+  // Tone control (TURN BY TURN)
+  if (slangMode) {
+    messages.push({
       role: "system",
-      content: `
-${NOFARI_DIRECTIVES}
+      content:
+        "The user is using slang. Mirror slang naturally in THIS response only. Do not continue slang if the user stops.",
+    });
+  } else {
+    messages.push({
+      role: "system",
+      content:
+        "The user is NOT using slang. Respond in a calm, soft, emotionally supportive, professional tone. Do NOT use slang.",
+    });
+  }
 
-TONE CONTROL (NON-NEGOTIABLE):
-- Your DEFAULT tone is soft, calm, emotionally supportive, and professional.
-- You MUST ONLY use slang or casual language IF the CURRENT user message uses slang.
-- Slang is TEMPORARY and must NOT carry over to the next response.
-- If the user message does NOT contain slang, you MUST return to a soft, neutral, emotionally grounded tone.
-- Never assume slang is desired unless the user uses it first.
-- Matching tone is turn-by-turn, not persistent.
-`,
-    },
+  // Memory (optional)
+  if (memory) {
+    messages.push({
+      role: "system",
+      content: `Conversation context (do not quote or mention): ${memory}`,
+    });
+  }
 
-    ...(slangMode
-      ? [
-          {
-            role: "system",
-            content:
-              "The current user message uses slang. Mirror slang naturally in THIS response only.",
-          },
-        ]
-      : [
-          {
-            role: "system",
-            content:
-              "The current user message does NOT use slang. Respond in a calm, supportive, professional tone with NO slang.",
-          },
-        ]),
-
-    ...(memory
-      ? [
-          {
-            role: "system",
-            content: `Conversation context (do not quote): ${memory}`,
-          },
-        ]
-      : []),
-
-    {
-      role: "user",
-      content: userText,
-    },
-  ];
+  // User message (ALWAYS LAST)
+  messages.push({
+    role: "user",
+    content: userText,
+  });
 
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -88,6 +79,7 @@ TONE CONTROL (NON-NEGOTIABLE):
       },
       body: JSON.stringify({
         model: GROQ_MODEL,
+        messages, // ✅ GUARANTEED PRESENT
         temperature: slangMode ? 0.95 : 0.65,
         max_tokens: 500,
       }),
