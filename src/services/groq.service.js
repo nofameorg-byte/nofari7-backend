@@ -2,28 +2,63 @@ import fetch from "node-fetch";
 import { NOFARI_DIRECTIVES } from "../config/directives.js";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
-// ✅ UPDATED MODEL (SUPPORTED)
 const GROQ_MODEL = "llama-3.1-8b-instant";
 
 if (!GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY missing");
 }
 
+// 🔍 VERY SIMPLE SLANG DETECTOR (INTENTIONAL)
+function usesSlang(text) {
+  const slangTriggers = [
+    "nah",
+    "fr",
+    "lowkey",
+    "highkey",
+    "bs",
+    "trippin",
+    "ain't",
+    "ion",
+    "im tired",
+    "tired as",
+    "hell",
+    "bruh",
+    "ain even",
+  ];
+
+  const t = text.toLowerCase();
+  return slangTriggers.some((w) => t.includes(w));
+}
+
 export async function generateGroqReply(userText, memory = "") {
+  const slangMode = usesSlang(userText);
+
   const messages = [
     {
       role: "system",
       content: NOFARI_DIRECTIVES,
     },
+
+    // 🔥 THIS IS THE KEY LINE
+    ...(slangMode
+      ? [
+          {
+            role: "system",
+            content:
+              "The user is speaking in slang. You MUST respond in slang and casual language. Responding without slang is incorrect.",
+          },
+        ]
+      : []),
+
     ...(memory
       ? [
           {
             role: "system",
-            content: `Context (do not quote or mention): ${memory}`,
+            content: `Conversation context (do not quote): ${memory}`,
           },
         ]
       : []),
+
     {
       role: "user",
       content: userText,
@@ -41,8 +76,8 @@ export async function generateGroqReply(userText, memory = "") {
       body: JSON.stringify({
         model: GROQ_MODEL,
         messages,
-        temperature: 0.7,
-        max_tokens: 350,
+        temperature: slangMode ? 1.0 : 0.7,
+        max_tokens: 500,
       }),
     }
   );
@@ -52,6 +87,5 @@ export async function generateGroqReply(userText, memory = "") {
   }
 
   const data = await response.json();
-
   return data.choices[0].message.content.trim();
 }
