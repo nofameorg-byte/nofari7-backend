@@ -8,7 +8,7 @@ if (!GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY missing");
 }
 
-// 🔍 VERY SIMPLE SLANG DETECTOR (INTENTIONAL)
+// 🔍 Slang detector (INTENTIONAL + LIMITED)
 function usesSlang(text) {
   const slangTriggers = [
     "nah",
@@ -19,10 +19,8 @@ function usesSlang(text) {
     "trippin",
     "ain't",
     "ion",
-    "im tired",
-    "tired as",
-    "hell",
     "bruh",
+    "hell",
     "ain even",
   ];
 
@@ -36,19 +34,34 @@ export async function generateGroqReply(userText, memory = "") {
   const messages = [
     {
       role: "system",
-      content: NOFARI_DIRECTIVES,
+      content: `
+${NOFARI_DIRECTIVES}
+
+TONE CONTROL (NON-NEGOTIABLE):
+- Your DEFAULT tone is soft, calm, emotionally supportive, and professional.
+- You MUST ONLY use slang or casual language IF the CURRENT user message uses slang.
+- Slang is TEMPORARY and must NOT carry over to the next response.
+- If the user message does NOT contain slang, you MUST return to a soft, neutral, emotionally grounded tone.
+- Never assume slang is desired unless the user uses it first.
+- Matching tone is turn-by-turn, not persistent.
+`,
     },
 
-    // 🔥 THIS IS THE KEY LINE
     ...(slangMode
       ? [
           {
             role: "system",
             content:
-              "The user is speaking in slang. You MUST respond in slang and casual language. Responding without slang is incorrect.",
+              "The current user message uses slang. Mirror slang naturally in THIS response only.",
           },
         ]
-      : []),
+      : [
+          {
+            role: "system",
+            content:
+              "The current user message does NOT use slang. Respond in a calm, supportive, professional tone with NO slang.",
+          },
+        ]),
 
     ...(memory
       ? [
@@ -75,8 +88,7 @@ export async function generateGroqReply(userText, memory = "") {
       },
       body: JSON.stringify({
         model: GROQ_MODEL,
-        messages,
-        temperature: slangMode ? 1.0 : 0.7,
+        temperature: slangMode ? 0.95 : 0.65,
         max_tokens: 500,
       }),
     }
