@@ -8,52 +8,89 @@ if (!GROQ_API_KEY) {
   throw new Error("GROQ_API_KEY missing");
 }
 
-// 🔍 Slang detector (STRICT + TURN-BASED)
-function usesSlang(text) {
-  const slangTriggers = [
-    "nah",
-    "fr",
-    "lowkey",
-    "highkey",
-    "bs",
-    "trippin",
-    "ain't",
-    "ion",
-    "bruh",
-    "hell",
-    "ain even",
-  ];
+// =======================
+// SLANG CONFIG
+// =======================
+const SLANG_TRIGGERS = [
+  "nah",
+  "fr",
+  "lowkey",
+  "highkey",
+  "bs",
+  "trippin",
+  "ain't",
+  "ion",
+  "bruh",
+  "ain even",
+  "you not",
+];
 
-  const t = text.toLowerCase();
-  return slangTriggers.some((w) => t.includes(w));
+// =======================
+// ANALYTICS EMITTER
+// (swap console.log later for DB)
+// =======================
+function emitAnalytics(event) {
+  console.log("[NOFARI_ANALYTICS]", JSON.stringify(event));
 }
 
-export async function generateGroqReply(userText, memory = "") {
-  const slangMode = usesSlang(userText);
+// =======================
+// SLANG DETECTOR (TURN-BASED)
+// =======================
+function detectSlang(text) {
+  const t = text.toLowerCase();
+  const matched = SLANG_TRIGGERS.filter((w) => t.includes(w));
 
-  // ✅ ALWAYS build messages as a clean array
+  return {
+    slangDetected: matched.length > 0,
+    matchedSlang: matched,
+  };
+}
+
+// =======================
+// SLANG SANITIZER (FINAL GUARD)
+// =======================
+function stripSlangIfNeeded(text) {
+  const patterns = SLANG_TRIGGERS.map(
+    (w) => new RegExp(`\\b${w.replace("'", "\\'")}\\b`, "gi")
+  );
+
+  let cleaned = text;
+  let removed = false;
+
+  patterns.forEach((pattern) => {
+    if (pattern.test(cleaned)) {
+      removed = true;
+      cleaned = cleaned.replace(pattern, "");
+    }
+  });
+
+  return {
+    cleanedText: cleaned.replace(/\s{2,}/g, " ").trim(),
+    slangRemoved: removed,
+  };
+}
+
+// =======================
+// MAIN GENERATOR
+// =======================
+export async function generateGroqReply(userText, memory = "") {
+  const { slangDetected, matchedSlang } = detectSlang(userText);
+
   const messages = [];
 
-  // Base identity + personality
+  // Base identity
   messages.push({
     role: "system",
     content: NOFARI_DIRECTIVES,
   });
 
-  // Tone control (TURN BY TURN)
-  if (slangMode) {
-    messages.push({
-      role: "system",
-      content:
-        "The user is using slang. Mirror slang naturally in THIS response only. Do not continue slang if the user stops.",
-    });
-  } else {
-    messages.push({
-      role: "system",
-      content:
-        "The user is NOT using slang. Respond in a calm, soft, emotionally supportive, professional tone. Do NOT use slang.",
-    });
-  }
+  // TURN-LOCKED TONE
+  messages.push({
+    role: "system",
+    content: slangDetected
+      ? "The user is using slang. You may mirror slang naturally in THIS RESPONSE ONLY. If the user stops using slang, you must immediately stop."
+      : "The user is NOT using slang. You must respond in a calm, warm, professional tone. You are NOT allowed to use slang, AAVE, or casual phrasing in this response.",
+  });
 
   // Memory (optional)
   if (memory) {
@@ -63,7 +100,7 @@ export async function generateGroqReply(userText, memory = "") {
     });
   }
 
-  // User message (ALWAYS LAST)
+  // User message LAST
   messages.push({
     role: "user",
     content: userText,
@@ -79,8 +116,8 @@ export async function generateGroqReply(userText, memory = "") {
       },
       body: JSON.stringify({
         model: GROQ_MODEL,
-        messages, // ✅ GUARANTEED PRESENT
-        temperature: slangMode ? 0.95 : 0.65,
+        messages,
+        temperature: slangDetected ? 0.9 : 0.55,
         max_tokens: 500,
       }),
     }
@@ -91,5 +128,27 @@ export async function generateGroqReply(userText, memory = "") {
   }
 
   const data = await response.json();
-  return data.choices[0].message.content.trim();
+  let reply = data.choices[0].message.content.trim();
+
+  // FINAL HARD BLOCK
+  let sanitizerResult = { cleanedText: reply, slangRemoved: false };
+  if (!slangDetected) {
+    sanitizerResult = stripSlangIfNeeded(reply);
+    reply = sanitizerResult.cleanedText;
+  }
+
+  // =======================
+  // ANALYTICS EVENT
+  // =======================
+  emitAnalytics({
+    event: "nofari_reply_generated",
+    timestamp: new Date().toISOString(),
+    slangDetected,
+    matchedSlang,
+    toneMode: slangDetected ? "slang" : "calm",
+    slangRemovedBySanitizer: sanitizerResult.slangRemoved,
+    model: GROQ_MODEL,
+  });
+
+  return reply;
 }
