@@ -2,20 +2,28 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import nofariRoute from "./routes/nofari.route.js";
+import voiceRoute from "./routes/voice.route.js"; // ElevenLabs (EXISTING)
+import voicePiperRoute from "./routes/voice-piper.route.js"; // ✅ NEW
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ FIX: serve the folder where MP3 files are actually written
+// serve audio files
 app.use(
   "/audio",
   express.static(path.join(process.cwd(), "src/public/audio"))
 );
 
-// 🔥 NOFARI route
+// NOFARI chat route
 app.use("/nofari", nofariRoute);
+
+// ElevenLabs voice (LIVE)
+app.use("/voice", voiceRoute);
+
+// Piper voice (TEST ONLY)
+app.use("/voice-piper", voicePiperRoute);
 
 // health check
 app.get("/", (req, res) => {
