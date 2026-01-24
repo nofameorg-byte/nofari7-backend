@@ -5,7 +5,7 @@ import fs from "fs";
 
 const router = express.Router();
 
-// same audio folder your app already serves
+// Same audio folder your app already serves
 const audioDir = path.join(process.cwd(), "src/public/audio");
 
 if (!fs.existsSync(audioDir)) {
@@ -22,11 +22,15 @@ router.post("/", async (req, res) => {
   const fileName = `nofari-piper-${Date.now()}.wav`;
   const outputPath = path.join(audioDir, fileName);
 
+  // IMPORTANT:
+  // Render does NOT expose `piper` as a shell binary.
+  // We must call it through Python.
   const command = `
-    echo "${text.replace(/"/g, '\\"')}" | \
-    piper \
-      --model en_US-amy-medium \
-      --output_file "${outputPath}"
+python3 - << 'EOF'
+from piper import PiperVoice
+voice = PiperVoice.load("en_US-amy-medium")
+voice.synthesize("${text.replace(/"/g, '\\"')}", "${outputPath}")
+EOF
   `;
 
   exec(command, (err) => {
