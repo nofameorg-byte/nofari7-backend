@@ -11,12 +11,14 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Text required" });
     }
 
-    const audioBuffer = await generateVoice(text);
+    // generateVoice RETURNS A URL STRING
+    const audioUrl = await generateVoice(text);
 
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.send(audioBuffer);
+    // ✅ SEND JSON (what the app expects)
+    res.json({ audioUrl });
+
   } catch (err) {
-    console.error(err);
+    console.error("VOICE ERROR:", err);
     res.status(500).json({ error: "Voice failed" });
   }
 });
