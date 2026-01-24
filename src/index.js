@@ -2,30 +2,34 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import nofariRoute from "./routes/nofari.route.js";
-import voiceRoute from "./routes/voice.route.js"; // ElevenLabs (EXISTING)
-import voicePiperRoute from "./routes/voice-piper.route.js"; // ✅ NEW
+import voiceRoute from "./routes/voice.route.js"; // ElevenLabs (LIVE)
+import voicePiperRoute from "./routes/voice-piper.route.js"; // Piper (LOCAL)
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// serve audio files
+/**
+ * 🔊 Serve generated audio files
+ * These are written by Piper directly to the server disk
+ * Location: /var/www/nofari/audio
+ */
 app.use(
   "/audio",
-  express.static(path.join(process.cwd(), "src/public/audio"))
+  express.static("/var/www/nofari/audio")
 );
 
 // NOFARI chat route
 app.use("/nofari", nofariRoute);
 
-// ElevenLabs voice (LIVE)
+// ElevenLabs voice (production)
 app.use("/voice", voiceRoute);
 
-// Piper voice (TEST ONLY)
+// Piper voice (self-hosted)
 app.use("/voice-piper", voicePiperRoute);
 
-// health check
+// Health check
 app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
