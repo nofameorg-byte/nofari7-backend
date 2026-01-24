@@ -10,8 +10,8 @@ if (!ELEVENLABS_API_KEY || !VOICE_ID) {
   throw new Error("ElevenLabs env vars missing");
 }
 
-// 🔒 SAME absolute path
-const AUDIO_DIR = "/opt/render/project/src/public/audio";
+// ✅ RENDER-SAFE writable directory
+const AUDIO_DIR = "/tmp/nofari-audio";
 
 // Ensure directory exists
 if (!fs.existsSync(AUDIO_DIR)) {
@@ -50,5 +50,6 @@ export async function generateVoice(text) {
 
   fs.writeFileSync(filepath, buffer);
 
+  // Frontend expects a URL
   return `/audio/${filename}`;
 }

@@ -9,10 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔒 ABSOLUTE audio path (Render-safe)
-const AUDIO_PATH = "/opt/render/project/src/public/audio";
+// ✅ RENDER-SAFE writable audio directory
+const AUDIO_PATH = "/tmp/nofari-audio";
 
-// Serve audio
+// Serve audio files
 app.use("/audio", express.static(AUDIO_PATH));
 
 // Routes
