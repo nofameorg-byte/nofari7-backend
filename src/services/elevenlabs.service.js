@@ -10,9 +10,10 @@ if (!ELEVENLABS_API_KEY || !VOICE_ID) {
   throw new Error("ElevenLabs env vars missing");
 }
 
-const AUDIO_DIR = path.join(process.cwd(), "src/public/audio");
+// 🔒 SAME absolute path
+const AUDIO_DIR = "/opt/render/project/src/public/audio";
 
-// ensure audio directory exists
+// Ensure directory exists
 if (!fs.existsSync(AUDIO_DIR)) {
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
 }
@@ -49,6 +50,5 @@ export async function generateVoice(text) {
 
   fs.writeFileSync(filepath, buffer);
 
-  // 👇 THIS IS WHAT THE FRONTEND EXPECTS
   return `/audio/${filename}`;
 }
