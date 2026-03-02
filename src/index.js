@@ -43,30 +43,31 @@ const rooms = {};
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Create room ONLY if it does not exist
   socket.on("create-room", (roomId) => {
     if (!rooms[roomId]) {
-      rooms[roomId] = [];
-    }
-
-    if (rooms[roomId].length < 2) {
-      rooms[roomId].push(socket.id);
+      rooms[roomId] = [socket.id];
       socket.join(roomId);
       socket.emit("room-created", roomId);
+      console.log("Room created:", roomId);
     } else {
-      socket.emit("room-full");
+      socket.emit("room-exists");
     }
   });
 
+  // Join room only if exactly one user exists
   socket.on("join-room", (roomId) => {
     if (rooms[roomId] && rooms[roomId].length === 1) {
       rooms[roomId].push(socket.id);
       socket.join(roomId);
       socket.to(roomId).emit("user-joined");
+      console.log("User joined room:", roomId);
     } else {
       socket.emit("room-full");
     }
   });
 
+  // Relay SDP and ICE
   socket.on("signal", ({ roomId, data }) => {
     socket.to(roomId).emit("signal", data);
   });
@@ -75,7 +76,10 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
 
     for (const roomId in rooms) {
-      rooms[roomId] = rooms[roomId].filter(id => id !== socket.id);
+      rooms[roomId] = rooms[roomId].filter(
+        (id) => id !== socket.id
+      );
+
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
       }
