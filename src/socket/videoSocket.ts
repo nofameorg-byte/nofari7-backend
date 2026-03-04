@@ -5,51 +5,58 @@ interface Room {
 }
 
 const rooms: Record<string, Room> = {};
-const userSockets: Record<string, string> = {};
+const users: Record<string, string> = {};
 
 export const initializeVideoSocket = (io: Server) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
+    // REGISTER USER CODE
     socket.on("register-user", (code: string) => {
-      userSockets[code] = socket.id;
+      users[code] = socket.id;
       console.log("Registered user:", code);
     });
 
+    // CALL USER
     socket.on("call-user", ({ from, to }) => {
-      const targetSocket = userSockets[to];
+      const target = users[to];
 
-      if (!targetSocket) {
-        socket.emit("user-offline");
+      if (!target) {
+        socket.emit("user-unavailable");
         return;
       }
 
-      const roomId = `${from}-${to}`;
+      const roomId = `${from}-${to}-${Date.now()}`;
 
-      rooms[roomId] = { users: [socket.id, targetSocket] };
+      rooms[roomId] = {
+        users: [socket.id, target],
+      };
 
       socket.join(roomId);
-      io.sockets.sockets.get(targetSocket)?.join(roomId);
+      io.sockets.sockets.get(target)?.join(roomId);
 
-      io.to(targetSocket).emit("incoming-call", {
+      io.to(target).emit("incoming-call", {
         from,
         roomId,
       });
     });
 
+    // ACCEPT CALL
     socket.on("accept-call", ({ roomId }) => {
-      socket.join(roomId);
-      io.to(roomId).emit("user-joined");
+      io.to(roomId).emit("call-accepted", roomId);
     });
 
+    // WEBRTC SIGNALING
     socket.on("signal", ({ roomId, data }) => {
       socket.to(roomId).emit("signal", data);
     });
 
     socket.on("disconnect", () => {
-      for (const code in userSockets) {
-        if (userSockets[code] === socket.id) {
-          delete userSockets[code];
+      console.log("User disconnected:", socket.id);
+
+      for (const code in users) {
+        if (users[code] === socket.id) {
+          delete users[code];
         }
       }
     });
