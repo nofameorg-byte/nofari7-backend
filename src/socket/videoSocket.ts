@@ -16,6 +16,24 @@ export const initializeVideoSocket = (io: Server) => {
       console.log("User registered:", code);
     });
 
+    socket.on("call-user", (targetCode: string) => {
+      const targetSocket = users[targetCode];
+
+      if (!targetSocket) {
+        socket.emit("user-offline");
+        return;
+      }
+
+      const roomId = `${socket.id}-${targetSocket}`;
+
+      rooms[roomId] = { users: [socket.id, targetSocket] };
+
+      socket.join(roomId);
+      io.sockets.sockets.get(targetSocket)?.join(roomId);
+
+      io.to(roomId).emit("user-joined");
+    });
+
     socket.on("create-room", (roomId: string) => {
       const room = rooms[roomId];
 
