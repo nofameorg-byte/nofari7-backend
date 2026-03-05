@@ -1,73 +1,61 @@
 import express from "express";
-import { generateGroqReply } from "../services/groq.service.js";
-import { generateVoice } from "../services/elevenlabs.service.js";
 
 const router = express.Router();
 
-/* 🔎 Detect check-in intent */
-function detectCheckInIntent(text) {
-  const msg = text.toLowerCase();
-
-  if (
-    msg.includes("check in with me") ||
-    msg.includes("check in every day") ||
-    msg.includes("daily check in") ||
-    msg.includes("check on me")
-  ) {
-    return "ENABLE";
-  }
-
-  if (
-    msg.includes("stop check") ||
-    msg.includes("stop the check") ||
-    msg.includes("dont check in") ||
-    msg.includes("don't check in") ||
-    msg.includes("stop checking in")
-  ) {
-    return "DISABLE";
-  }
-
-  return null;
-}
-
-/**
- * POST /nofari
- * body: { text: string }
- */
 router.post("/", async (req, res) => {
   try {
-    const { text } = req.body;
+
+    const text = req.body.text || req.body.message;
 
     if (!text) {
-      return res.status(400).json({ error: "Text is required" });
+      return res.json({
+        reply: "I'm here. Tell me what's going on."
+      });
     }
 
-    const intent = detectCheckInIntent(text);
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama3-70b-8192",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are NOFARI, a calm emotional support AI with warm big-sister energy."
+            },
+            {
+              role: "user",
+              content: text
+            }
+          ]
+        })
+      }
+    );
 
-    let checkInEnabled = null;
-    if (intent === "ENABLE") checkInEnabled = true;
-    if (intent === "DISABLE") checkInEnabled = false;
+    const data = await response.json();
 
-    // 🧠 Groq ALWAYS runs now
-    const reply = await generateGroqReply(text);
-
-    // 🔊 Voice (DEBUG LOG ADDED)
-    let audioUrl = null;
-    try {
-      audioUrl = await generateVoice(reply);
-      console.log("VOICE URL:", audioUrl);
-    } catch (e) {
-      console.warn("Voice generation failed:", e.message);
-    }
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "I'm here with you.";
 
     res.json({
-      reply,
-      audioUrl,
-      checkInEnabled,
+      reply
     });
+
   } catch (err) {
+
     console.error("NOFARI route error:", err);
-    res.status(500).json({ error: "NOFARI failed" });
+
+    res.json({
+      reply: "Something went wrong but I'm still here."
+    });
+
   }
 });
 
