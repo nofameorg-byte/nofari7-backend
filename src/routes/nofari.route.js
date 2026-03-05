@@ -3,6 +3,7 @@ import express from "express";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
+
   try {
 
     const text = req.body.text || req.body.message;
@@ -18,7 +19,7 @@ router.post("/", async (req, res) => {
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -44,9 +45,7 @@ router.post("/", async (req, res) => {
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-    res.json({
-      reply
-    });
+    res.json({ reply });
 
   } catch (err) {
 
@@ -57,6 +56,7 @@ router.post("/", async (req, res) => {
     });
 
   }
+
 });
 
 export default router;
