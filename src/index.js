@@ -23,8 +23,6 @@ app.get("/", (req, res) => {
 
 
 
-
-
 /* =========================
    NOFARI CHAT ENDPOINT
 ========================= */
@@ -33,7 +31,8 @@ app.post("/nofari", async (req, res) => {
 
   try {
 
-    const userText = req.body.text;
+    // FIX: accept both frontend formats
+    const userText = req.body.text || req.body.message;
 
     const prompt = `
 You are NOFARI, an emotional support AI companion.
@@ -145,6 +144,8 @@ io.on("connection", (socket) => {
       nickname
     });
 
+    console.log(`${nickname} joined ${roomId}`);
+
   });
 
   socket.on("disconnect", () => {
@@ -162,6 +163,8 @@ io.on("connection", (socket) => {
       }
 
     }
+
+    console.log("User disconnected:", socket.id);
 
   });
 
@@ -200,6 +203,7 @@ Rules:
 - 2 to 3 sentences
 - no astrology or astronomy words
 - calm supportive tone
+- written like a supportive companion
 
 End with this exact sentence:
 
@@ -269,20 +273,32 @@ async function runCircle(type) {
 
 cron.schedule(
   "0 8 * * *",
-  () => runCircle("morning grounding"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("morning grounding");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
 
 cron.schedule(
   "0 13 * * *",
-  () => runCircle("midday encouragement"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("midday encouragement");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
 
 cron.schedule(
   "0 21 * * *",
-  () => runCircle("night reflection"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("night reflection");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
 
 
