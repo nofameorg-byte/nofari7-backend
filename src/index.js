@@ -1,70 +1,86 @@
 import express from "express";
-import http from "http";
-import fetch from "node-fetch";
-import { Server } from "socket.io";
+import cors from "cors";
+import { generateGroqReply } from "./services/groq.js";
 
 const app = express();
+
+app.use(cors());
 app.use(express.json());
 
-const server = http.createServer(app);
-
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
-
 app.get("/", (req, res) => {
-  res.json({ status: "NOFARI backend running" });
+  res.json({
+    status: "NOFARI backend alive"
+  });
 });
 
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
+/*
+NOFARI CHAT ROUTE
+New architecture route
+*/
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3-70b-8192",
-        messages: [
-          {
-            role: "system",
-            content: "You are NOFARI, a warm emotional support AI that speaks calmly and reassuringly like a big sister."
-          },
-          {
-            role: "user",
-            content: message
-          }
-        ]
-      })
+app.post("/chat", async (req, res) => {
+  try {
+
+    const { message, memory } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        error: "Message required"
+      });
+    }
+
+    const reply = await generateGroqReply(message, memory || "");
+
+    res.json({
+      reply
     });
 
-    const data = await response.json();
-
-    const reply =
-      data?.choices?.[0]?.message?.content ||
-      "I'm here with you. Tell me what's going on.";
-
-    res.json({ reply });
-
   } catch (err) {
-    console.error("Chat error:", err);
-    res.status(500).json({ reply: "Something went wrong but I'm still here." });
+
+    console.error("NOFARI chat error:", err);
+
+    res.status(500).json({
+      error: "NOFARI response failed"
+    });
+
   }
 });
 
-io.on("connection", socket => {
-  console.log("User connected:", socket.id);
+/*
+OLD FRONTEND COMPATIBILITY ROUTE
+This restores the old `/nofari` endpoint your previous app used
+*/
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+app.post("/nofari", async (req, res) => {
+  try {
+
+    const { text, memory } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        error: "Text required"
+      });
+    }
+
+    const reply = await generateGroqReply(text, memory || "");
+
+    res.json({
+      reply
+    });
+
+  } catch (err) {
+
+    console.error("NOFARI legacy route error:", err);
+
+    res.status(500).json({
+      error: "NOFARI response failed"
+    });
+
+  }
 });
 
 const PORT = process.env.PORT || 10000;
 
-server.listen(PORT, () => {
-  console.log(`NOFARI backend running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log("NOFARI backend running on port", PORT);
 });
