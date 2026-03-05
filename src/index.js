@@ -1,8 +1,6 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import axios from "axios";
-import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
@@ -17,258 +15,48 @@ const io = new Server(server, {
   }
 });
 
+/*
+=================================
+ BASIC SERVER ROUTE
+=================================
+*/
+
 app.get("/", (req, res) => {
-  res.send("NOFARI Circle backend running");
+  res.send("NOFARI backend running");
 });
 
-
-
-/* =========================
-   NEW API ROUTE (FIXES ERROR)
-========================= */
-
-app.post("/circle-message", async (req, res) => {
-
-  try {
-
-    const { type, tone } = req.body;
-
-    const message = await generateCircleMessage(
-      type || "support",
-      tone || "calm supportive"
-    );
-
-    res.json({ message });
-
-  } catch (err) {
-
-    console.error(err);
-
-    res.json({
-      message: "I'm here with you. Let's try again."
-    });
-
-  }
-
-});
-
-
-
-/* =========================
-   SOCKET CIRCLE
-========================= */
-
-const MAX_ROOM_SIZE = 6;
-
-let rooms = {};
-
-const names = [
-  "CalmRiver",
-  "QuietStone",
-  "NightEcho",
-  "BlueLeaf",
-  "SoftCloud",
-  "WarmSun",
-  "SilverWave",
-  "KindSky",
-  "StillWater",
-  "GentleWind"
-];
-
-function randomName() {
-  return names[Math.floor(Math.random() * names.length)];
-}
-
-function findRoom() {
-  for (const roomId in rooms) {
-    if (rooms[roomId].length < MAX_ROOM_SIZE) {
-      return roomId;
-    }
-  }
-  return null;
-}
-
-io.on("connection", (socket) => {
-
-  console.log("User connected:", socket.id);
-
-  socket.on("circle-join", () => {
-
-    let roomId = findRoom();
-
-    if (!roomId) {
-      roomId = `circle-${Date.now()}`;
-      rooms[roomId] = [];
-    }
-
-    const nickname = randomName();
-
-    rooms[roomId].push({
-      socketId: socket.id,
-      nickname
-    });
-
-    socket.join(roomId);
-
-    io.to(roomId).emit("circle-users", rooms[roomId]);
-
-    socket.emit("circle-joined", {
-      roomId,
-      nickname
-    });
-
-    console.log(`${nickname} joined ${roomId}`);
-
-  });
-
-  socket.on("disconnect", () => {
-
-    for (const roomId in rooms) {
-
-      rooms[roomId] = rooms[roomId].filter(
-        u => u.socketId !== socket.id
-      );
-
-      io.to(roomId).emit("circle-users", rooms[roomId]);
-
-      if (rooms[roomId].length === 0) {
-        delete rooms[roomId];
-      }
-
-    }
-
-    console.log("User disconnected:", socket.id);
-
-  });
-
-});
-
-
-
-/* =========================
-   SUPABASE
-========================= */
+/*
+=================================
+ SUPABASE
+=================================
+*/
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+/*
+=================================
+ SOCKET CONNECTION (SAFE)
+=================================
+*/
 
+io.on("connection", (socket) => {
 
-/* =========================
-   GROQ MESSAGE
-========================= */
+  console.log("User connected:", socket.id);
 
-async function generateCircleMessage(type, tone) {
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 
-  const prompt = `
-Create a short supportive mental health message.
+});
 
-Type: ${type}
-Tone: ${tone}
-
-Rules:
-- 2 to 3 sentences
-- calm supportive tone
-
-End with:
-
-NOFARI's Circle here to support your day.
-`;
-
-  const res = await axios.post(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: "user", content: prompt }
-      ]
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`
-      }
-    }
-  );
-
-  return res.data.choices[0].message.content;
-
-}
-
-
-
-/* =========================
-   PUSH
-========================= */
-
-async function sendPush(playerId, message) {
-
-  await axios.post(
-    "https://onesignal.com/api/v1/notifications",
-    {
-      app_id: process.env.ONESIGNAL_APP_ID,
-      include_player_ids: [playerId],
-      headings: { en: "NOFARI's Circle" },
-      contents: { en: message }
-    },
-    {
-      headers: {
-        Authorization: `Basic ${process.env.ONESIGNAL_REST_KEY}`
-      }
-    }
-  );
-
-}
-
-
-
-async function runCircle(type) {
-
-  const { data: users } = await supabase
-    .from("users")
-    .select("*");
-
-  if (!users) return;
-
-  for (const user of users) {
-
-    if (!user.onesignal_player_id) continue;
-
-    const message = await generateCircleMessage(
-      type,
-      user.tone || "calm supportive"
-    );
-
-    await sendPush(user.onesignal_player_id, message);
-
-  }
-
-}
-
-
-
-/* =========================
-   CRON
-========================= */
-
-cron.schedule("0 8 * * *", () => {
-  runCircle("morning grounding");
-}, { timezone: "America/New_York" });
-
-cron.schedule("0 13 * * *", () => {
-  runCircle("midday encouragement");
-}, { timezone: "America/New_York" });
-
-cron.schedule("0 21 * * *", () => {
-  runCircle("night reflection");
-}, { timezone: "America/New_York" });
-
-
-
-/* =========================
-   SERVER
-========================= */
+/*
+=================================
+ SERVER START
+=================================
+*/
 
 const PORT = process.env.PORT || 10000;
 
