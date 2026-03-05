@@ -6,6 +6,7 @@ import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
+app.use(express.json());
 
 const server = http.createServer(app);
 
@@ -19,6 +20,71 @@ const io = new Server(server, {
 app.get("/", (req, res) => {
   res.send("NOFARI Circle backend running");
 });
+
+
+
+
+
+/* =========================
+   NOFARI CHAT ENDPOINT
+========================= */
+
+app.post("/nofari", async (req, res) => {
+
+  try {
+
+    const userText = req.body.text;
+
+    const prompt = `
+You are NOFARI, an emotional support AI companion.
+
+User message:
+${userText}
+
+Respond calmly and supportively.
+2-3 sentences maximum.
+`;
+
+    const groqRes = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama3-70b-8192",
+        messages: [
+          { role: "user", content: prompt }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
+        }
+      }
+    );
+
+    const reply = groqRes.data.choices[0].message.content;
+
+    res.json({
+      reply
+    });
+
+  } catch (err) {
+
+    console.error("NOFARI backend error:", err);
+
+    res.status(500).json({
+      reply: "I'm here with you. Something went wrong but let's try again."
+    });
+
+  }
+
+});
+
+
+
+
+
+/* =========================
+   CIRCLE SOCKET SYSTEM
+========================= */
 
 const MAX_ROOM_SIZE = 6;
 
@@ -79,8 +145,6 @@ io.on("connection", (socket) => {
       nickname
     });
 
-    console.log(`${nickname} joined ${roomId}`);
-
   });
 
   socket.on("disconnect", () => {
@@ -99,16 +163,30 @@ io.on("connection", (socket) => {
 
     }
 
-    console.log("User disconnected:", socket.id);
-
   });
 
 });
+
+
+
+
+
+/* =========================
+   SUPABASE
+========================= */
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+
+
+
+
+/* =========================
+   CIRCLE PUSH SYSTEM
+========================= */
 
 async function generateCircleMessage(type, tone) {
 
@@ -122,7 +200,6 @@ Rules:
 - 2 to 3 sentences
 - no astrology or astronomy words
 - calm supportive tone
-- written like a supportive companion
 
 End with this exact sentence:
 
@@ -192,33 +269,29 @@ async function runCircle(type) {
 
 cron.schedule(
   "0 8 * * *",
-  () => {
-    runCircle("morning grounding");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("morning grounding"),
+  { timezone: "America/New_York" }
 );
 
 cron.schedule(
   "0 13 * * *",
-  () => {
-    runCircle("midday encouragement");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("midday encouragement"),
+  { timezone: "America/New_York" }
 );
 
 cron.schedule(
   "0 21 * * *",
-  () => {
-    runCircle("night reflection");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("night reflection"),
+  { timezone: "America/New_York" }
 );
+
+
+
+
+
+/* =========================
+   SERVER
+========================= */
 
 const PORT = process.env.PORT || 10000;
 
