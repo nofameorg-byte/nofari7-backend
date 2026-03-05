@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* AUDIO STORAGE */
+/* AUDIO DIRECTORY */
 
 const AUDIO_DIR = "/tmp/nofari-audio";
 
@@ -28,20 +28,26 @@ app.post("/nofari", async (req, res) => {
 
   try {
 
-    // Accept BOTH formats from different app versions
-    const message = req.body.message || req.body.text;
+    console.log("BODY RECEIVED:", req.body);
 
-    console.log("Incoming message:", message);
+    let message =
+      req.body?.message ||
+      req.body?.text ||
+      "";
+
+    message = String(message).trim();
 
     if (!message) {
       return res.json({
-        reply: "I'm here with you."
+        reply: "I'm here. Tell me what's going on."
       });
     }
 
-    /* GROQ AI */
+    console.log("MESSAGE:", message);
 
-    const response = await fetch(
+    /* GROQ REQUEST */
+
+    const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
@@ -54,7 +60,8 @@ app.post("/nofari", async (req, res) => {
           messages: [
             {
               role: "system",
-              content: "You are NOFARI, a calm emotional support AI with warm big-sister energy."
+              content:
+                "You are NOFARI, a calm emotional support AI with warm big-sister energy."
             },
             {
               role: "user",
@@ -65,15 +72,15 @@ app.post("/nofari", async (req, res) => {
       }
     );
 
-    const data = await response.json();
+    const data = await groqResponse.json();
 
-    console.log("Groq response:", data);
+    console.log("GROQ RESPONSE:", data);
 
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-    /* ELEVENLABS VOICE */
+    /* ELEVENLABS */
 
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
@@ -104,8 +111,6 @@ app.post("/nofari", async (req, res) => {
 
     const audioUrl = `/audio/${filename}`;
 
-    /* RESPONSE */
-
     res.json({
       reply,
       audioUrl
@@ -113,7 +118,7 @@ app.post("/nofari", async (req, res) => {
 
   } catch (error) {
 
-    console.log("NOFARI error:", error);
+    console.log("NOFARI ERROR:", error);
 
     res.json({
       reply: "I'm here with you."
