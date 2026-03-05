@@ -6,6 +6,7 @@ import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
+app.use(express.json());
 
 const server = http.createServer(app);
 
@@ -19,6 +20,43 @@ const io = new Server(server, {
 app.get("/", (req, res) => {
   res.send("NOFARI Circle backend running");
 });
+
+
+
+/* =========================
+   NEW API ROUTE (FIXES ERROR)
+========================= */
+
+app.post("/circle-message", async (req, res) => {
+
+  try {
+
+    const { type, tone } = req.body;
+
+    const message = await generateCircleMessage(
+      type || "support",
+      tone || "calm supportive"
+    );
+
+    res.json({ message });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.json({
+      message: "I'm here with you. Let's try again."
+    });
+
+  }
+
+});
+
+
+
+/* =========================
+   SOCKET CIRCLE
+========================= */
 
 const MAX_ROOM_SIZE = 6;
 
@@ -119,7 +157,7 @@ const supabase = createClient(
 
 
 /* =========================
-   CIRCLE MESSAGE GENERATION
+   GROQ MESSAGE
 ========================= */
 
 async function generateCircleMessage(type, tone) {
@@ -132,11 +170,9 @@ Tone: ${tone}
 
 Rules:
 - 2 to 3 sentences
-- no astrology or astronomy words
 - calm supportive tone
-- written like a supportive companion
 
-End with this exact sentence:
+End with:
 
 NOFARI's Circle here to support your day.
 `;
@@ -161,6 +197,10 @@ NOFARI's Circle here to support your day.
 }
 
 
+
+/* =========================
+   PUSH
+========================= */
 
 async function sendPush(playerId, message) {
 
@@ -209,38 +249,20 @@ async function runCircle(type) {
 
 
 /* =========================
-   CRON SCHEDULES
+   CRON
 ========================= */
 
-cron.schedule(
-  "0 8 * * *",
-  () => {
-    runCircle("morning grounding");
-  },
-  {
-    timezone: "America/New_York"
-  }
-);
+cron.schedule("0 8 * * *", () => {
+  runCircle("morning grounding");
+}, { timezone: "America/New_York" });
 
-cron.schedule(
-  "0 13 * * *",
-  () => {
-    runCircle("midday encouragement");
-  },
-  {
-    timezone: "America/New_York"
-  }
-);
+cron.schedule("0 13 * * *", () => {
+  runCircle("midday encouragement");
+}, { timezone: "America/New_York" });
 
-cron.schedule(
-  "0 21 * * *",
-  () => {
-    runCircle("night reflection");
-  },
-  {
-    timezone: "America/New_York"
-  }
-);
+cron.schedule("0 21 * * *", () => {
+  runCircle("night reflection");
+}, { timezone: "America/New_York" });
 
 
 
