@@ -1,4 +1,5 @@
 import express from "express";
+import { generateVoice } from "../services/elevenlabs.service.js";
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.post("/", async (req, res) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama3-70b-8192",
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
@@ -45,7 +46,13 @@ router.post("/", async (req, res) => {
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-    res.json({ reply });
+    // 🔊 GENERATE ELEVENLABS VOICE
+    const audioUrl = await generateVoice(reply);
+
+    res.json({
+      reply,
+      audioUrl
+    });
 
   } catch (err) {
 
