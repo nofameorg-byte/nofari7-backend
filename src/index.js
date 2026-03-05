@@ -6,7 +6,6 @@ import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
-app.use(express.json());
 
 const server = http.createServer(app);
 
@@ -18,82 +17,8 @@ const io = new Server(server, {
 });
 
 app.get("/", (req, res) => {
-  res.send("NOFARI backend running");
+  res.send("NOFARI Circle backend running");
 });
-
-
-
-
-
-/* =========================
-   NOFARI CHAT ENDPOINT
-========================= */
-
-app.post("/nofari", async (req, res) => {
-
-  try {
-
-    const userText =
-      req.body?.text ||
-      req.body?.message ||
-      req.body?.content ||
-      "";
-
-    if (!userText) {
-      return res.json({
-        reply: "I'm here with you. Tell me what's on your mind."
-      });
-    }
-
-    const groqRes = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: "llama3-70b-8192",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are NOFARI, a calm emotional support companion. Respond in 2-3 supportive sentences."
-          },
-          {
-            role: "user",
-            content: userText
-          }
-        ]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    const reply =
-      groqRes?.data?.choices?.[0]?.message?.content ||
-      "I'm here with you.";
-
-    res.json({ reply });
-
-  } catch (err) {
-
-    console.error("NOFARI backend error:", err?.response?.data || err);
-
-    res.json({
-      reply: "I'm here with you. Let's take a breath and try again."
-    });
-
-  }
-
-});
-
-
-
-
-
-/* =========================
-   CIRCLE SOCKET SYSTEM
-========================= */
 
 const MAX_ROOM_SIZE = 6;
 
@@ -127,6 +52,8 @@ function findRoom() {
 
 io.on("connection", (socket) => {
 
+  console.log("User connected:", socket.id);
+
   socket.on("circle-join", () => {
 
     let roomId = findRoom();
@@ -152,6 +79,8 @@ io.on("connection", (socket) => {
       nickname
     });
 
+    console.log(`${nickname} joined ${roomId}`);
+
   });
 
   socket.on("disconnect", () => {
@@ -170,11 +99,11 @@ io.on("connection", (socket) => {
 
     }
 
+    console.log("User disconnected:", socket.id);
+
   });
 
 });
-
-
 
 
 
@@ -189,10 +118,8 @@ const supabase = createClient(
 
 
 
-
-
 /* =========================
-   CIRCLE PUSH SYSTEM
+   CIRCLE MESSAGE GENERATION
 ========================= */
 
 async function generateCircleMessage(type, tone) {
@@ -205,10 +132,11 @@ Tone: ${tone}
 
 Rules:
 - 2 to 3 sentences
+- no astrology or astronomy words
 - calm supportive tone
-- no astrology words
+- written like a supportive companion
 
-End with:
+End with this exact sentence:
 
 NOFARI's Circle here to support your day.
 `;
@@ -232,6 +160,8 @@ NOFARI's Circle here to support your day.
 
 }
 
+
+
 async function sendPush(playerId, message) {
 
   await axios.post(
@@ -250,6 +180,8 @@ async function sendPush(playerId, message) {
   );
 
 }
+
+
 
 async function runCircle(type) {
 
@@ -274,25 +206,41 @@ async function runCircle(type) {
 
 }
 
+
+
+/* =========================
+   CRON SCHEDULES
+========================= */
+
 cron.schedule(
   "0 8 * * *",
-  () => runCircle("morning grounding"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("morning grounding");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
 
 cron.schedule(
   "0 13 * * *",
-  () => runCircle("midday encouragement"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("midday encouragement");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
 
 cron.schedule(
   "0 21 * * *",
-  () => runCircle("night reflection"),
-  { timezone: "America/New_York" }
+  () => {
+    runCircle("night reflection");
+  },
+  {
+    timezone: "America/New_York"
+  }
 );
-
-
 
 
 
