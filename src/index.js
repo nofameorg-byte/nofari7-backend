@@ -7,28 +7,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ===============================
-   HEALTH CHECK
-================================= */
-
 app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
 
-/* ===============================
-   NOFARI CHAT
-================================= */
-
 app.post("/nofari", async (req, res) => {
+
   try {
 
     const { message } = req.body;
 
-    if (!message) {
-      return res.status(400).json({
-        error: "Message required"
-      });
-    }
+    console.log("Incoming message:", message);
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -43,8 +32,7 @@ app.post("/nofari", async (req, res) => {
           messages: [
             {
               role: "system",
-              content:
-                "You are NOFARI, a warm emotional support AI who speaks calmly like a caring big sister."
+              content: "You are NOFARI, a warm emotional support AI."
             },
             {
               role: "user",
@@ -57,28 +45,25 @@ app.post("/nofari", async (req, res) => {
 
     const data = await response.json();
 
+    console.log("Groq response:", data);
+
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-    res.json({
-      reply
-    });
+    res.json({ reply });
 
   } catch (error) {
 
-    console.error("Groq error:", error);
+    console.log("Groq failure:", error);
 
     res.json({
       reply: "I'm here with you."
     });
 
   }
-});
 
-/* ===============================
-   START SERVER
-================================= */
+});
 
 const PORT = process.env.PORT || 10000;
 
