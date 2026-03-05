@@ -179,7 +179,10 @@ async function runCircle(type) {
 
     if (!user.onesignal_player_id) continue;
 
-    const message = await generateCircleMessage(type, user.tone || "calm supportive");
+    const message = await generateCircleMessage(
+      type,
+      user.tone || "calm supportive"
+    );
 
     await sendPush(user.onesignal_player_id, message);
 
@@ -187,17 +190,35 @@ async function runCircle(type) {
 
 }
 
-cron.schedule("0 8 * * *", () => {
-  runCircle("morning grounding");
-});
+cron.schedule(
+  "0 8 * * *",
+  () => {
+    runCircle("morning grounding");
+  },
+  {
+    timezone: "America/New_York"
+  }
+);
 
-cron.schedule("0 13 * * *", () => {
-  runCircle("midday encouragement");
-});
+cron.schedule(
+  "0 13 * * *",
+  () => {
+    runCircle("midday encouragement");
+  },
+  {
+    timezone: "America/New_York"
+  }
+);
 
-cron.schedule("0 21 * * *", () => {
-  runCircle("night reflection");
-});
+cron.schedule(
+  "0 21 * * *",
+  () => {
+    runCircle("night reflection");
+  },
+  {
+    timezone: "America/New_York"
+  }
+);
 
 const PORT = process.env.PORT || 10000;
 
