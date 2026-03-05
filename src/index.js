@@ -18,8 +18,10 @@ const io = new Server(server, {
 });
 
 app.get("/", (req, res) => {
-  res.send("NOFARI Circle backend running");
+  res.send("NOFARI backend running");
 });
+
+
 
 
 
@@ -31,46 +33,54 @@ app.post("/nofari", async (req, res) => {
 
   try {
 
-    // FIX: accept both frontend formats
-    const userText = req.body.text || req.body.message;
+    const userText =
+      req.body?.text ||
+      req.body?.message ||
+      req.body?.content ||
+      "";
 
-    const prompt = `
-You are NOFARI, an emotional support AI companion.
-
-User message:
-${userText}
-
-Respond calmly and supportively.
-2-3 sentences maximum.
-`;
+    if (!userText) {
+      return res.json({
+        reply: "I'm here with you. Tell me what's on your mind."
+      });
+    }
 
     const groqRes = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama3-70b-8192",
         messages: [
-          { role: "user", content: prompt }
+          {
+            role: "system",
+            content:
+              "You are NOFARI, a calm emotional support companion. Respond in 2-3 supportive sentences."
+          },
+          {
+            role: "user",
+            content: userText
+          }
         ]
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
         }
       }
     );
 
-    const reply = groqRes.data.choices[0].message.content;
+    const reply =
+      groqRes?.data?.choices?.[0]?.message?.content ||
+      "I'm here with you.";
 
-    res.json({
-      reply
-    });
+    res.json({ reply });
 
   } catch (err) {
 
-    console.error("NOFARI backend error:", err);
+    console.error("NOFARI backend error:", err?.response?.data || err);
 
-    res.status(500).json({
-      reply: "I'm here with you. Something went wrong but let's try again."
+    res.json({
+      reply: "I'm here with you. Let's take a breath and try again."
     });
 
   }
@@ -117,8 +127,6 @@ function findRoom() {
 
 io.on("connection", (socket) => {
 
-  console.log("User connected:", socket.id);
-
   socket.on("circle-join", () => {
 
     let roomId = findRoom();
@@ -144,8 +152,6 @@ io.on("connection", (socket) => {
       nickname
     });
 
-    console.log(`${nickname} joined ${roomId}`);
-
   });
 
   socket.on("disconnect", () => {
@@ -163,8 +169,6 @@ io.on("connection", (socket) => {
       }
 
     }
-
-    console.log("User disconnected:", socket.id);
 
   });
 
@@ -201,11 +205,10 @@ Tone: ${tone}
 
 Rules:
 - 2 to 3 sentences
-- no astrology or astronomy words
 - calm supportive tone
-- written like a supportive companion
+- no astrology words
 
-End with this exact sentence:
+End with:
 
 NOFARI's Circle here to support your day.
 `;
@@ -273,32 +276,20 @@ async function runCircle(type) {
 
 cron.schedule(
   "0 8 * * *",
-  () => {
-    runCircle("morning grounding");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("morning grounding"),
+  { timezone: "America/New_York" }
 );
 
 cron.schedule(
   "0 13 * * *",
-  () => {
-    runCircle("midday encouragement");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("midday encouragement"),
+  { timezone: "America/New_York" }
 );
 
 cron.schedule(
   "0 21 * * *",
-  () => {
-    runCircle("night reflection");
-  },
-  {
-    timezone: "America/New_York"
-  }
+  () => runCircle("night reflection"),
+  { timezone: "America/New_York" }
 );
 
 
