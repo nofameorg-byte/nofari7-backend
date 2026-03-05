@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* AUDIO STORAGE (Render-safe) */
+/* AUDIO STORAGE */
 
 const AUDIO_DIR = "/tmp/nofari-audio";
 
@@ -28,9 +28,16 @@ app.post("/nofari", async (req, res) => {
 
   try {
 
-    const { message } = req.body;
+    // Accept BOTH formats from different app versions
+    const message = req.body.message || req.body.text;
 
     console.log("Incoming message:", message);
+
+    if (!message) {
+      return res.json({
+        reply: "I'm here with you."
+      });
+    }
 
     /* GROQ AI */
 
