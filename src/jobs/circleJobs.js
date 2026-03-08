@@ -12,13 +12,7 @@ let lastRunDate = null
 
 async function runCircle(type){
 
-const today = new Date().toDateString()
-
-if(lastRunDate === today){
-return
-}
-
-lastRunDate = today
+console.log("NOFARI TEST MESSAGE RUNNING")
 
 const {data:users}=await supabase
 .from("users")
@@ -36,10 +30,8 @@ await sendPush(user.onesignal_player_id,msg)
 
 export function startCircleJobs(){
 
-cron.schedule("0 7 * * *",()=>{
+cron.schedule("* * * * *",()=>{
 runCircle("morning support")
-},{
-timezone:"America/New_York"
 })
 
 }
