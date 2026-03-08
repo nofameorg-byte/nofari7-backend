@@ -133,5 +133,6 @@ const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`NOFARI backend running on port ${PORT}`);
+  console.log("NOFARI morning scheduler started");
   startCircleJobs();
 });
