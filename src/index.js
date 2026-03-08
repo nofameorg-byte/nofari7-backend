@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { startCircleJobs } from "./jobs/circleJobs.js";
 
 const app = express();
 
@@ -132,4 +133,5 @@ const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`NOFARI backend running on port ${PORT}`);
+  startCircleJobs();
 });

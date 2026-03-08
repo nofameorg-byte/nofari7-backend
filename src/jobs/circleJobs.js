@@ -8,7 +8,17 @@ process.env.SUPABASE_URL,
 process.env.SUPABASE_SERVICE_ROLE
 )
 
+let lastRunDate = null
+
 async function runCircle(type){
+
+const today = new Date().toDateString()
+
+if(lastRunDate === today){
+return
+}
+
+lastRunDate = today
 
 const {data:users}=await supabase
 .from("users")
@@ -26,16 +36,10 @@ await sendPush(user.onesignal_player_id,msg)
 
 export function startCircleJobs(){
 
-cron.schedule("0 8 * * *",()=>{
-runCircle("morning grounding")
-})
-
-cron.schedule("0 13 * * *",()=>{
-runCircle("midday encouragement")
-})
-
-cron.schedule("0 21 * * *",()=>{
-runCircle("night reflection")
+cron.schedule("0 7 * * *",()=>{
+runCircle("morning support")
+},{
+timezone:"America/New_York"
 })
 
 }
