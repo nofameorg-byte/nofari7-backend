@@ -20,6 +20,10 @@ const {data:users}=await supabase
 
 for(const user of users){
 
+if(!user.onesignal_player_id){
+continue
+}
+
 const msg = await generateCircleMessage(type,user.tone)
 
 await sendPush(user.onesignal_player_id,msg)
