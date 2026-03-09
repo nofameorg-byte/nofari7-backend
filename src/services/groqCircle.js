@@ -9,10 +9,11 @@ Type: ${type}
 Tone: ${tone}
 
 Rules:
-- 2 to 3 sentences
-- no astrology or astronomy words
-- calm, supportive, encouraging
-- written like a supportive companion
+
+* 2 to 3 sentences
+* no astrology or astronomy words
+* calm, supportive, encouraging
+* written like a supportive companion
 
 End with this exact sentence:
 
@@ -24,12 +25,13 @@ const res = await axios.post(
 {
 model: "llama-3.1-8b-instant",
 messages: [
-{role:"user",content:prompt}
+{ role: "user", content: prompt }
 ]
 },
 {
 headers:{
-Authorization:`Bearer ${process.env.GROQ_API_KEY}`
+Authorization:`Bearer ${process.env.GROQ_API_KEY}`,
+"Content-Type":"application/json"
 }
 }
 )
