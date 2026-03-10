@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { startCircleJobs } from "./jobs/circleJobs.js";
+import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 
 const app = express();
 
@@ -25,20 +26,17 @@ app.get("/", (req, res) => {
 
 
 /* =========================
-   CIRCLE MESSAGE STORAGE
-========================= */
-
-let circleMessage = "Even small steps forward still move your life ahead.";
-
-
-/* =========================
    CIRCLE MESSAGE ROUTE
 ========================= */
 
-app.get("/circle-message", (req, res) => {
+app.get("/circle-message", async (req, res) => {
+
+  const message = await getDailyCircleMessage();
+
   res.json({
-    message: circleMessage
+    message
   });
+
 });
 
 
@@ -196,17 +194,12 @@ app.post("/nofari", async (req, res) => {
 });
 
 
-/* =========================
-   START SERVER
-========================= */
-
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
 
   console.log(`NOFARI backend running on port ${PORT}`);
 
-  // START DAILY CIRCLE MESSAGE GENERATOR
   startCircleJobs();
 
 });
