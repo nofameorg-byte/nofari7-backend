@@ -25,6 +25,102 @@ app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
 
+/* =========================
+   DAILY CIRCLE MESSAGE
+========================= */
+
+let todaysCircleMessage = "";
+let lastGeneratedDate = "";
+
+async function generateCircleMessage() {
+
+  const today = new Date().toISOString().split("T")[0];
+
+  if (lastGeneratedDate === today && todaysCircleMessage) {
+    return todaysCircleMessage;
+  }
+
+  try {
+
+    console.log("Generating Circle message from Groq...");
+
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are NOFARI, a calm emotional support AI with warm big-sister energy."
+            },
+            {
+              role: "user",
+              content:
+                "Write a short daily support message under 35 words. Warm, encouraging, calming tone."
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await groqResponse.json();
+
+    console.log("CIRCLE GROQ RESPONSE:", data);
+
+    const message =
+      data?.choices?.[0]?.message?.content?.trim();
+
+    if (message) {
+
+      todaysCircleMessage = message;
+      lastGeneratedDate = today;
+
+      console.log("Circle message generated:", message);
+
+      return todaysCircleMessage;
+
+    }
+
+  } catch (err) {
+
+    console.log("Circle generation error:", err);
+
+  }
+
+  todaysCircleMessage =
+    "Even small steps forward still move your life ahead.";
+
+  lastGeneratedDate = today;
+
+  return todaysCircleMessage;
+
+}
+
+/* =========================
+   CIRCLE MESSAGE ROUTE
+========================= */
+
+app.get("/circle-message", async (req, res) => {
+
+  const message = await generateCircleMessage();
+
+  res.json({
+    message
+  });
+
+});
+
+/* =========================
+   NOFARI CHAT ROUTE
+========================= */
+
 app.post("/nofari", async (req, res) => {
 
   try {
@@ -45,8 +141,6 @@ app.post("/nofari", async (req, res) => {
     }
 
     console.log("MESSAGE:", message);
-
-    /* GROQ REQUEST */
 
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -80,8 +174,6 @@ app.post("/nofari", async (req, res) => {
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
-
-    /* ELEVENLABS */
 
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
