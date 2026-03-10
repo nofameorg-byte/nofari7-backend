@@ -24,8 +24,13 @@ async function runCircle(type) {
 
   const msg = await generateCircleMessage(type, "supportive")
 
-  // Save message globally so the app can read it
-  global.circleMessage = msg
+  await supabase
+    .from("circle_daily_message")
+    .update({
+      message: msg,
+      created_at: new Date()
+    })
+    .eq("id", 1)
 
   const { data: users } = await supabase
     .from("users")
@@ -45,7 +50,7 @@ async function runCircle(type) {
 
 export function startCircleJobs() {
 
-  // Run every day at 7:00 AM
+  // runs every day at 7:00 AM
   cron.schedule("0 7 * * *", () => {
     runCircle("morning support")
   })

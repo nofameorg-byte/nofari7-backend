@@ -4,12 +4,18 @@ import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
 import { startCircleJobs } from "./jobs/circleJobs.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const AUDIO_DIR = "/tmp/nofari-audio";
 
@@ -25,77 +31,20 @@ app.get("/", (req, res) => {
 
 
 /* =========================
-   DAILY CIRCLE MESSAGE
-========================= */
-
-global.circleMessage =
-  "Even small steps forward still move your life ahead.";
-
-
-/* =========================
    CIRCLE MESSAGE ROUTE
 ========================= */
 
-app.get("/circle-message", (req, res) => {
+app.get("/circle-message", async (req, res) => {
+
+  const { data } = await supabase
+    .from("circle_daily_message")
+    .select("*")
+    .eq("id", 1)
+    .single()
 
   res.json({
-    message: global.circleMessage
-  });
-
-});
-
-
-/* =========================
-   ONE SIGNAL PUSH FUNCTION
-========================= */
-
-async function sendCirclePush() {
-
-  try {
-
-    console.log("Sending Circle push notification");
-
-    await fetch("https://onesignal.com/api/v1/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${process.env.ONESIGNAL_REST_KEY}`
-      },
-      body: JSON.stringify({
-        app_id: process.env.ONESIGNAL_APP_ID,
-        included_segments: ["All"],
-        headings: { en: "NOFARI" },
-        contents: { en: "Your support message is ready." },
-
-        data: {
-          screen: "circle"
-        },
-
-        ios_badgeType: "Increase",
-        ios_badgeCount: 1
-      })
-    });
-
-  } catch (err) {
-
-    console.log("OneSignal push error:", err);
-
-  }
-
-}
-
-
-/* =========================
-   MANUAL PUSH TEST ROUTE
-========================= */
-
-app.get("/send-circle-push", async (req, res) => {
-
-  await sendCirclePush();
-
-  res.json({
-    status: "Push sent"
-  });
+    message: data?.message || "You are stronger than you think."
+  })
 
 });
 
