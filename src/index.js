@@ -25,6 +25,24 @@ app.get("/", (req, res) => {
 
 
 /* =========================
+   CIRCLE MESSAGE STORAGE
+========================= */
+
+let circleMessage = "Even small steps forward still move your life ahead.";
+
+
+/* =========================
+   CIRCLE MESSAGE ROUTE
+========================= */
+
+app.get("/circle-message", (req, res) => {
+  res.json({
+    message: circleMessage
+  });
+});
+
+
+/* =========================
    ONE SIGNAL PUSH FUNCTION
 ========================= */
 
@@ -46,7 +64,6 @@ async function sendCirclePush() {
         headings: { en: "NOFARI" },
         contents: { en: "Your support message is ready." },
 
-        /* IMPORTANT: tells app to open Circle */
         data: {
           screen: "circle"
         },
@@ -65,7 +82,6 @@ async function sendCirclePush() {
 }
 
 
-
 /* =========================
    MANUAL PUSH TEST ROUTE
 ========================= */
@@ -79,7 +95,6 @@ app.get("/send-circle-push", async (req, res) => {
   });
 
 });
-
 
 
 /* =========================
