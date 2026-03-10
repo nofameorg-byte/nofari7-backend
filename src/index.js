@@ -11,8 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* AUDIO DIRECTORY */
-
 const AUDIO_DIR = "/tmp/nofari-audio";
 
 if (!fs.existsSync(AUDIO_DIR)) {
@@ -25,107 +23,65 @@ app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
 
+
+
 /* =========================
-   DAILY CIRCLE MESSAGE
+   ONE SIGNAL PUSH FUNCTION
 ========================= */
 
-let todaysCircleMessage = "";
-let lastGeneratedDate = "";
-
-async function generateCircleMessage() {
-
-  const today = new Date().toISOString().split("T")[0];
-
-  if (lastGeneratedDate === today && todaysCircleMessage) {
-    return todaysCircleMessage;
-  }
+async function sendCirclePush() {
 
   try {
 
-    console.log("Generating Circle message from Groq...");
+    console.log("Sending Circle push notification");
 
-    const groqResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are NOFARI, a calm emotional support AI with warm big-sister energy."
-            },
-            {
-              role: "user",
-              content:
-                "Write a short daily support message under 35 words. Warm, encouraging, calming tone."
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await groqResponse.json();
-
-    console.log("CIRCLE GROQ RESPONSE:", data);
-
-    const message =
-      data?.choices?.[0]?.message?.content?.trim();
-
-    if (message) {
-
-      todaysCircleMessage = message;
-      lastGeneratedDate = today;
-
-      console.log("Circle message generated:", message);
-
-      return todaysCircleMessage;
-
-    }
+    await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${process.env.ONESIGNAL_REST_KEY}`
+      },
+      body: JSON.stringify({
+        app_id: process.env.ONESIGNAL_APP_ID,
+        included_segments: ["All"],
+        headings: { en: "NOFARI" },
+        contents: { en: "Your support message is ready." }
+      })
+    });
 
   } catch (err) {
 
-    console.log("Circle generation error:", err);
+    console.log("OneSignal push error:", err);
 
   }
 
-  todaysCircleMessage =
-    "Even small steps forward still move your life ahead.";
-
-  lastGeneratedDate = today;
-
-  return todaysCircleMessage;
-
 }
 
+
+
 /* =========================
-   CIRCLE MESSAGE ROUTE
+   MANUAL PUSH TEST ROUTE
 ========================= */
 
-app.get("/circle-message", async (req, res) => {
+app.get("/send-circle-push", async (req, res) => {
 
-  const message = await generateCircleMessage();
+  await sendCirclePush();
 
   res.json({
-    message
+    status: "Push sent"
   });
 
 });
 
+
+
 /* =========================
-   NOFARI CHAT ROUTE
+   EXISTING CHAT ROUTE
 ========================= */
 
 app.post("/nofari", async (req, res) => {
 
   try {
-
-    console.log("BODY RECEIVED:", req.body);
 
     let message =
       req.body?.message ||
@@ -139,8 +95,6 @@ app.post("/nofari", async (req, res) => {
         reply: "I'm here. Tell me what's going on."
       });
     }
-
-    console.log("MESSAGE:", message);
 
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -168,8 +122,6 @@ app.post("/nofari", async (req, res) => {
     );
 
     const data = await groqResponse.json();
-
-    console.log("GROQ RESPONSE:", data);
 
     const reply =
       data?.choices?.[0]?.message?.content ||
@@ -221,10 +173,11 @@ app.post("/nofari", async (req, res) => {
 
 });
 
+
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`NOFARI backend running on port ${PORT}`);
-  console.log("NOFARI morning scheduler started");
   startCircleJobs();
 });
