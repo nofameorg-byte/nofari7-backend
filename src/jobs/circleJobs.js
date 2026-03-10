@@ -22,6 +22,11 @@ async function runCircle(type) {
 
   console.log("NOFARI MORNING MESSAGE RUNNING")
 
+  const msg = await generateCircleMessage(type, "supportive")
+
+  // Save message globally so the app can read it
+  global.circleMessage = msg
+
   const { data: users } = await supabase
     .from("users")
     .select("*")
@@ -32,8 +37,6 @@ async function runCircle(type) {
       continue
     }
 
-    const msg = await generateCircleMessage(type, user.tone)
-
     await sendPush(user.onesignal_player_id, msg)
 
   }
@@ -42,7 +45,7 @@ async function runCircle(type) {
 
 export function startCircleJobs() {
 
-  // runs every day at 7:00 AM server time
+  // Run every day at 7:00 AM
   cron.schedule("0 7 * * *", () => {
     runCircle("morning support")
   })

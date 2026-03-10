@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { startCircleJobs } from "./jobs/circleJobs.js";
-import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 
 const app = express();
 
@@ -26,15 +25,21 @@ app.get("/", (req, res) => {
 
 
 /* =========================
+   DAILY CIRCLE MESSAGE
+========================= */
+
+global.circleMessage =
+  "Even small steps forward still move your life ahead.";
+
+
+/* =========================
    CIRCLE MESSAGE ROUTE
 ========================= */
 
-app.get("/circle-message", async (req, res) => {
-
-  const message = await getDailyCircleMessage();
+app.get("/circle-message", (req, res) => {
 
   res.json({
-    message
+    message: global.circleMessage
   });
 
 });
