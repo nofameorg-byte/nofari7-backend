@@ -40,7 +40,7 @@ export async function getDailyCircleMessage() {
       }
     );
 
-    const data: any = await res.json();
+    const data = await res.json();
 
     todaysMessage = data.choices[0].message.content.trim();
     lastGeneratedDate = today;
