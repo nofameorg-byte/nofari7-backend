@@ -196,9 +196,17 @@ app.post("/nofari", async (req, res) => {
 });
 
 
+/* =========================
+   START SERVER
+========================= */
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
+
   console.log(`NOFARI backend running on port ${PORT}`);
+
+  // START DAILY CIRCLE MESSAGE GENERATOR
   startCircleJobs();
+
 });
