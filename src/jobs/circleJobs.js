@@ -1,41 +1,50 @@
 import cron from "node-cron"
-import {createClient} from "@supabase/supabase-js"
-import {generateCircleMessage} from "../services/groqCircle.js"
-import {sendPush} from "../services/sendPush.js"
+import { createClient } from "@supabase/supabase-js"
+import { generateCircleMessage } from "../services/groqCircle.js"
+import { sendPush } from "../services/sendPush.js"
 
 const supabase = createClient(
-process.env.SUPABASE_URL,
-process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 let lastRunDate = null
 
-async function runCircle(type){
+async function runCircle(type) {
 
-console.log("NOFARI TEST MESSAGE RUNNING")
+  const today = new Date().toISOString().split("T")[0]
 
-const {data:users}=await supabase
-.from("users")
-.select("*")
+  if (lastRunDate === today) {
+    return
+  }
 
-for(const user of users){
+  lastRunDate = today
 
-if(!user.onesignal_player_id){
-continue
+  console.log("NOFARI MORNING MESSAGE RUNNING")
+
+  const { data: users } = await supabase
+    .from("users")
+    .select("*")
+
+  for (const user of users) {
+
+    if (!user.onesignal_player_id) {
+      continue
+    }
+
+    const msg = await generateCircleMessage(type, user.tone)
+
+    await sendPush(user.onesignal_player_id, msg)
+
+  }
+
 }
 
-const msg = await generateCircleMessage(type,user.tone)
+export function startCircleJobs() {
 
-await sendPush(user.onesignal_player_id,msg)
-
-}
-
-}
-
-export function startCircleJobs(){
-
-cron.schedule("* * * * *",()=>{
-runCircle("morning support")
-})
+  // runs every day at 7:00 AM server time
+  cron.schedule("0 7 * * *", () => {
+    runCircle("morning support")
+  })
 
 }
