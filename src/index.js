@@ -24,7 +24,6 @@ app.get("/", (req, res) => {
 });
 
 
-
 /* =========================
    ONE SIGNAL PUSH FUNCTION
 ========================= */
@@ -45,7 +44,15 @@ async function sendCirclePush() {
         app_id: process.env.ONESIGNAL_APP_ID,
         included_segments: ["All"],
         headings: { en: "NOFARI" },
-        contents: { en: "Your support message is ready." }
+        contents: { en: "Your support message is ready." },
+
+        /* IMPORTANT: tells app to open Circle */
+        data: {
+          screen: "circle"
+        },
+
+        ios_badgeType: "Increase",
+        ios_badgeCount: 1
       })
     });
 
@@ -172,7 +179,6 @@ app.post("/nofari", async (req, res) => {
   }
 
 });
-
 
 
 const PORT = process.env.PORT || 10000;
