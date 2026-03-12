@@ -29,6 +29,44 @@ app.get("/", (req, res) => {
 });
 
 
+
+/* =========================
+   CIRCLE MESSAGE ROUTE
+========================= */
+
+app.get("/circle-message", async (req, res) => {
+
+  try {
+
+    const { data } = await supabase
+      .from("circle_messages")
+      .select("message")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data?.message) {
+      return res.json({ message: data.message });
+    }
+
+    res.json({
+      message: "Even small steps forward still move your life ahead."
+    });
+
+  } catch (error) {
+
+    console.log("Circle message error:", error);
+
+    res.json({
+      message: "Even small steps forward still move your life ahead."
+    });
+
+  }
+
+});
+
+
+
 /* =========================
    EMOTION DETECTOR
 ========================= */
@@ -50,11 +88,13 @@ function detectEmotion(text) {
     return "happy";
 
   return "neutral";
+
 }
 
 
+
 /* =========================
-   FACT DETECTOR
+   PERSONAL FACT DETECTOR
 ========================= */
 
 function detectFacts(text) {
@@ -63,8 +103,11 @@ function detectFacts(text) {
   const lower = text.toLowerCase();
 
   if (lower.includes("my name is")) {
+
     const name = text.split("my name is")[1]?.trim();
+
     if (name) facts.push({ type: "name", value: name });
+
   }
 
   if (lower.includes("my daughter")) {
@@ -76,7 +119,9 @@ function detectFacts(text) {
   }
 
   return facts;
+
 }
+
 
 
 /* =========================
@@ -93,7 +138,9 @@ app.post("/nofari", async (req, res) => {
       return res.status(400).json({ error: "Missing message or email" });
     }
 
-    /* emotion log */
+
+
+    /* EMOTION TRACKING */
 
     const emotion = detectEmotion(message);
 
@@ -103,19 +150,25 @@ app.post("/nofari", async (req, res) => {
       message
     });
 
-    /* memory facts */
+
+
+    /* PERSONAL MEMORY */
 
     const facts = detectFacts(message);
 
     for (const f of facts) {
+
       await supabase.from("user_memory").insert({
         email,
         type: f.type,
         value: f.value
       });
+
     }
 
-    /* save message */
+
+
+    /* SAVE USER MESSAGE */
 
     await supabase.from("conversation_memory").insert({
       email,
@@ -123,7 +176,9 @@ app.post("/nofari", async (req, res) => {
       message
     });
 
-    /* load last 15 messages */
+
+
+    /* LOAD LAST 15 MESSAGES */
 
     const { data: history } = await supabase
       .from("conversation_memory")
@@ -131,6 +186,8 @@ app.post("/nofari", async (req, res) => {
       .eq("email", email)
       .order("created_at", { ascending: false })
       .limit(15);
+
+
 
     const messages = history
       .reverse()
@@ -140,13 +197,16 @@ app.post("/nofari", async (req, res) => {
       }));
 
 
-    /* load personal memory */
+
+    /* LOAD PERSONAL MEMORY */
 
     const { data: memory } = await supabase
       .from("user_memory")
       .select("*")
       .eq("email", email)
       .limit(10);
+
+
 
     let memoryContext = "";
 
@@ -160,21 +220,26 @@ app.post("/nofari", async (req, res) => {
 
     }
 
+
+
+    /* SYSTEM PROMPT */
+
     messages.unshift({
       role: "system",
       content:
-`You are NOFARI, a calm emotional support AI with warm big-sister energy.
+`You are NOFARI, a calm supportive AI with warm big-sister energy.
 
-Use supportive language.
+Use supportive emotional language.
 
-User facts:
+Here is known user information:
 ${memoryContext}`
     });
 
 
-    /* GROQ */
 
-    const groqResponse = await fetch(
+    /* GROQ REQUEST */
+
+    const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
@@ -189,11 +254,14 @@ ${memoryContext}`
       }
     );
 
-    const data = await groqResponse.json();
+
+
+    const data = await response.json();
 
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
+
 
 
     /* SAVE AI RESPONSE */
@@ -203,6 +271,7 @@ ${memoryContext}`
       role: "nofari",
       message: reply
     });
+
 
 
     /* =========================
@@ -229,35 +298,43 @@ ${memoryContext}`
       }
     );
 
+
+
     const buffer = Buffer.from(await voiceResponse.arrayBuffer());
 
     const filename = `nofari-${crypto.randomUUID()}.mp3`;
+
     const filepath = path.join(AUDIO_DIR, filename);
 
     fs.writeFileSync(filepath, buffer);
 
     const audioUrl = `/audio/${filename}`;
 
+
+
     res.json({
       reply,
       audioUrl
     });
 
-  } catch (error) {
+  } catch (err) {
 
-    console.log("NOFARI ERROR:", error);
+    console.error("NOFARI error:", err);
 
-    res.json({
-      reply: "I'm here with you."
-    });
+    res.status(500).json({ error: "server error" });
 
   }
 
 });
 
 
+
+/* =========================
+   START SERVER
+========================= */
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`NOFARI backend running on port ${PORT}`);
+  console.log("NOFARI backend running on port", PORT);
 });
