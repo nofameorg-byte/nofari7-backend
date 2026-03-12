@@ -14,6 +14,7 @@ Rules:
 * no astrology or astronomy words
 * calm, supportive, encouraging
 * written like a supportive companion
+* maximum 250 characters including spaces
 
 End with this exact sentence:
 
@@ -36,6 +37,12 @@ Authorization:`Bearer ${process.env.GROQ_API_KEY}`,
 }
 )
 
-return res.data.choices[0].message.content
+let text = res.data.choices[0].message.content.trim()
+
+if(text.length > 250){
+text = text.substring(0,250)
+}
+
+return text
 
 }

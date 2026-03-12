@@ -50,7 +50,7 @@ app.get("/circle-message", async (req, res) => {
 
 
 /* =========================
-   EXISTING CHAT ROUTE
+   NOFARI CHAT WITH MEMORY
 ========================= */
 
 app.post("/nofari", async (req, res) => {
@@ -62,6 +62,10 @@ app.post("/nofari", async (req, res) => {
       req.body?.text ||
       "";
 
+    const email =
+      req.body?.email ||
+      "anonymous@nobody.com";
+
     message = String(message).trim();
 
     if (!message) {
@@ -69,6 +73,47 @@ app.post("/nofari", async (req, res) => {
         reply: "I'm here. Tell me what's going on."
       });
     }
+
+    /* =========================
+       LOAD PAST CONVERSATION
+    ========================= */
+
+    const { data: history } = await supabase
+      .from("conversations")
+      .select("role,message")
+      .eq("user_email", email)
+      .order("created_at", { ascending: false })
+      .limit(12);
+
+    const conversationHistory = (history || [])
+      .reverse()
+      .map(m => ({
+        role: m.role === "nofari" ? "assistant" : "user",
+        content: m.message
+      }));
+
+
+    /* =========================
+       BUILD GROQ CONTEXT
+    ========================= */
+
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are NOFARI, a calm emotional support AI with warm big-sister energy."
+      },
+      ...conversationHistory,
+      {
+        role: "user",
+        content: message
+      }
+    ];
+
+
+    /* =========================
+       CALL GROQ
+    ========================= */
 
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -80,17 +125,7 @@ app.post("/nofari", async (req, res) => {
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are NOFARI, a calm emotional support AI with warm big-sister energy."
-            },
-            {
-              role: "user",
-              content: message
-            }
-          ]
+          messages
         })
       }
     );
@@ -100,6 +135,31 @@ app.post("/nofari", async (req, res) => {
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
+
+
+    /* =========================
+       SAVE CONVERSATION
+    ========================= */
+
+    await supabase
+      .from("conversations")
+      .insert([
+        {
+          user_email: email,
+          role: "user",
+          message: message
+        },
+        {
+          user_email: email,
+          role: "nofari",
+          message: reply
+        }
+      ]);
+
+
+    /* =========================
+       GENERATE VOICE
+    ========================= */
 
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
