@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { startCircleJobs } from "./jobs/circleJobs.js";
 
 const app = express();
 
@@ -30,92 +29,171 @@ app.get("/", (req, res) => {
 });
 
 
+
 /* =========================
-   CIRCLE MESSAGE ROUTE
+   EMOTION DETECTOR
 ========================= */
 
-app.get("/circle-message", async (req, res) => {
+function detectEmotion(text) {
 
-  const { data } = await supabase
-    .from("circle_daily_message")
-    .select("*")
-    .eq("id", 1)
-    .single()
+  const t = text.toLowerCase();
 
-  res.json({
-    message: data?.message || "You are stronger than you think."
-  })
+  if (t.includes("sad") || t.includes("depressed") || t.includes("cry"))
+    return "sad";
 
-});
+  if (t.includes("anxious") || t.includes("anxiety") || t.includes("nervous"))
+    return "anxious";
+
+  if (t.includes("angry") || t.includes("mad") || t.includes("pissed"))
+    return "angry";
+
+  if (t.includes("happy") || t.includes("great") || t.includes("good"))
+    return "happy";
+
+  return "neutral";
+}
+
 
 
 /* =========================
-   NOFARI CHAT WITH MEMORY
+   PERSONAL FACT DETECTOR
+========================= */
+
+function detectFacts(text) {
+
+  const facts = [];
+
+  const lower = text.toLowerCase();
+
+  if (lower.includes("my name is")) {
+
+    const name = text.split("my name is")[1]?.trim();
+
+    if (name) facts.push({ type: "name", value: name });
+
+  }
+
+  if (lower.includes("my daughter")) {
+
+    facts.push({ type: "family", value: "daughter" });
+
+  }
+
+  if (lower.includes("my son")) {
+
+    facts.push({ type: "family", value: "son" });
+
+  }
+
+  return facts;
+
+}
+
+
+
+/* =========================
+   CHAT ROUTE
 ========================= */
 
 app.post("/nofari", async (req, res) => {
 
   try {
 
-    let message =
-      req.body?.message ||
-      req.body?.text ||
-      "";
+    const { message, email } = req.body;
 
-    const email =
-      req.body?.email ||
-      "anonymous@nobody.com";
+    if (!message || !email) {
 
-    message = String(message).trim();
+      return res.status(400).json({ error: "Missing message or email" });
 
-    if (!message) {
-      return res.json({
-        reply: "I'm here. Tell me what's going on."
-      });
     }
 
+
+
     /* =========================
-       LOAD PAST CONVERSATION
+       EMOTION TRACKING
+    ========================= */
+
+    const emotion = detectEmotion(message);
+
+    await supabase.from("emotion_log").insert({
+
+      email,
+      emotion,
+      message
+
+    });
+
+
+
+    /* =========================
+       FACT MEMORY
+    ========================= */
+
+    const facts = detectFacts(message);
+
+    for (const f of facts) {
+
+      await supabase.from("user_memory").insert({
+
+        email,
+        type: f.type,
+        value: f.value
+
+      });
+
+    }
+
+
+
+    /* =========================
+       SAVE MESSAGE
+    ========================= */
+
+    await supabase.from("conversation_memory").insert({
+
+      email,
+      role: "user",
+      message
+
+    });
+
+
+
+    /* =========================
+       LOAD LAST 15 MESSAGES
     ========================= */
 
     const { data: history } = await supabase
-      .from("conversations")
-      .select("role,message")
-      .eq("user_email", email)
+      .from("conversation_memory")
+      .select("*")
+      .eq("email", email)
       .order("created_at", { ascending: false })
-      .limit(12);
+      .limit(15);
 
-    const conversationHistory = (history || [])
+
+
+    const messages = history
       .reverse()
       .map(m => ({
-        role: m.role === "nofari" ? "assistant" : "user",
+        role: m.role === "user" ? "user" : "assistant",
         content: m.message
       }));
 
 
-    /* =========================
-       BUILD GROQ CONTEXT
-    ========================= */
 
-    const messages = [
-      {
-        role: "system",
-        content:
-          "You are NOFARI, a calm emotional support AI with warm big-sister energy."
-      },
-      ...conversationHistory,
-      {
-        role: "user",
-        content: message
-      }
-    ];
+    messages.unshift({
+      role: "system",
+      content:
+        "You are NOFARI, a calm supportive AI with warm big-sister energy. Speak gently, clearly, and supportively."
+    });
+
 
 
     /* =========================
-       CALL GROQ
+       GROQ REQUEST
     ========================= */
 
-    const groqResponse = await fetch(
+    const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
@@ -130,90 +208,58 @@ app.post("/nofari", async (req, res) => {
       }
     );
 
-    const data = await groqResponse.json();
-
-    const reply =
-      data?.choices?.[0]?.message?.content ||
-      "I'm here with you.";
 
 
-    /* =========================
-       SAVE CONVERSATION
-    ========================= */
+    const data = await response.json();
 
-    await supabase
-      .from("conversations")
-      .insert([
-        {
-          user_email: email,
-          role: "user",
-          message: message
-        },
-        {
-          user_email: email,
-          role: "nofari",
-          message: reply
-        }
-      ]);
+    const reply = data.choices?.[0]?.message?.content || "I'm here with you.";
+
 
 
     /* =========================
-       GENERATE VOICE
+       SAVE REPLY
     ========================= */
 
-    const voiceResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": process.env.ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg"
-        },
-        body: JSON.stringify({
-          text: reply,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.45,
-            similarity_boost: 0.75
-          }
-        })
-      }
-    );
+    await supabase.from("conversation_memory").insert({
 
-    const buffer = Buffer.from(await voiceResponse.arrayBuffer());
+      email,
+      role: "nofari",
+      message: reply
 
-    const filename = `nofari-${crypto.randomUUID()}.mp3`;
-    const filepath = path.join(AUDIO_DIR, filename);
-
-    fs.writeFileSync(filepath, buffer);
-
-    const audioUrl = `/audio/${filename}`;
-
-    res.json({
-      reply,
-      audioUrl
     });
 
-  } catch (error) {
 
-    console.log("NOFARI ERROR:", error);
+
+    /* =========================
+       RETURN RESPONSE
+    ========================= */
 
     res.json({
-      reply: "I'm here with you."
+
+      reply
+
     });
+
+  } catch (err) {
+
+    console.error("NOFARI error:", err);
+
+    res.status(500).json({ error: "server error" });
 
   }
 
 });
 
 
+
+/* =========================
+   START SERVER
+========================= */
+
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
 
-  console.log(`NOFARI backend running on port ${PORT}`);
-
-  startCircleJobs();
+  console.log("NOFARI backend running on port", PORT);
 
 });
