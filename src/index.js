@@ -29,7 +29,6 @@ app.get("/", (req, res) => {
 });
 
 
-
 /* =========================
    EMOTION DETECTOR
 ========================= */
@@ -54,41 +53,30 @@ function detectEmotion(text) {
 }
 
 
-
 /* =========================
-   PERSONAL FACT DETECTOR
+   FACT DETECTOR
 ========================= */
 
 function detectFacts(text) {
 
   const facts = [];
-
   const lower = text.toLowerCase();
 
   if (lower.includes("my name is")) {
-
     const name = text.split("my name is")[1]?.trim();
-
     if (name) facts.push({ type: "name", value: name });
-
   }
 
   if (lower.includes("my daughter")) {
-
     facts.push({ type: "family", value: "daughter" });
-
   }
 
   if (lower.includes("my son")) {
-
     facts.push({ type: "family", value: "son" });
-
   }
 
   return facts;
-
 }
-
 
 
 /* =========================
@@ -102,66 +90,40 @@ app.post("/nofari", async (req, res) => {
     const { message, email } = req.body;
 
     if (!message || !email) {
-
       return res.status(400).json({ error: "Missing message or email" });
-
     }
 
-
-
-    /* =========================
-       EMOTION TRACKING
-    ========================= */
+    /* emotion log */
 
     const emotion = detectEmotion(message);
 
     await supabase.from("emotion_log").insert({
-
       email,
       emotion,
       message
-
     });
 
-
-
-    /* =========================
-       FACT MEMORY
-    ========================= */
+    /* memory facts */
 
     const facts = detectFacts(message);
 
     for (const f of facts) {
-
       await supabase.from("user_memory").insert({
-
         email,
         type: f.type,
         value: f.value
-
       });
-
     }
 
-
-
-    /* =========================
-       SAVE MESSAGE
-    ========================= */
+    /* save message */
 
     await supabase.from("conversation_memory").insert({
-
       email,
       role: "user",
       message
-
     });
 
-
-
-    /* =========================
-       LOAD LAST 15 MESSAGES
-    ========================= */
+    /* load last 15 messages */
 
     const { data: history } = await supabase
       .from("conversation_memory")
@@ -169,8 +131,6 @@ app.post("/nofari", async (req, res) => {
       .eq("email", email)
       .order("created_at", { ascending: false })
       .limit(15);
-
-
 
     const messages = history
       .reverse()
@@ -180,20 +140,41 @@ app.post("/nofari", async (req, res) => {
       }));
 
 
+    /* load personal memory */
+
+    const { data: memory } = await supabase
+      .from("user_memory")
+      .select("*")
+      .eq("email", email)
+      .limit(10);
+
+    let memoryContext = "";
+
+    if (memory && memory.length > 0) {
+
+      memoryContext = "User facts:\n";
+
+      memory.forEach(f => {
+        memoryContext += `${f.type}: ${f.value}\n`;
+      });
+
+    }
 
     messages.unshift({
       role: "system",
       content:
-        "You are NOFARI, a calm supportive AI with warm big-sister energy. Speak gently, clearly, and supportively."
+`You are NOFARI, a calm emotional support AI with warm big-sister energy.
+
+Use supportive language.
+
+User facts:
+${memoryContext}`
     });
 
 
+    /* GROQ */
 
-    /* =========================
-       GROQ REQUEST
-    ========================= */
-
-    const response = await fetch(
+    const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
@@ -208,58 +189,75 @@ app.post("/nofari", async (req, res) => {
       }
     );
 
+    const data = await groqResponse.json();
+
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "I'm here with you.";
 
 
-    const data = await response.json();
-
-    const reply = data.choices?.[0]?.message?.content || "I'm here with you.";
-
-
-
-    /* =========================
-       SAVE REPLY
-    ========================= */
+    /* SAVE AI RESPONSE */
 
     await supabase.from("conversation_memory").insert({
-
       email,
       role: "nofari",
       message: reply
-
     });
-
 
 
     /* =========================
-       RETURN RESPONSE
+       ELEVENLABS VOICE
     ========================= */
 
+    const voiceResponse = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": process.env.ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg"
+        },
+        body: JSON.stringify({
+          text: reply,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.45,
+            similarity_boost: 0.75
+          }
+        })
+      }
+    );
+
+    const buffer = Buffer.from(await voiceResponse.arrayBuffer());
+
+    const filename = `nofari-${crypto.randomUUID()}.mp3`;
+    const filepath = path.join(AUDIO_DIR, filename);
+
+    fs.writeFileSync(filepath, buffer);
+
+    const audioUrl = `/audio/${filename}`;
+
     res.json({
-
-      reply
-
+      reply,
+      audioUrl
     });
 
-  } catch (err) {
+  } catch (error) {
 
-    console.error("NOFARI error:", err);
+    console.log("NOFARI ERROR:", error);
 
-    res.status(500).json({ error: "server error" });
+    res.json({
+      reply: "I'm here with you."
+    });
 
   }
 
 });
 
 
-
-/* =========================
-   START SERVER
-========================= */
-
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-
-  console.log("NOFARI backend running on port", PORT);
-
+  console.log(`NOFARI backend running on port ${PORT}`);
 });
