@@ -8,21 +8,44 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-let lastRunDate = null
-
 async function runCircle(type) {
 
   const today = new Date().toISOString().split("T")[0]
 
-  if (lastRunDate === today) {
-    return
-  }
+  /* =========================
+     CHECK IF ALREADY RAN TODAY
+  ========================= */
 
-  lastRunDate = today
+  const { data } = await supabase
+    .from("circle_daily_message")
+    .select("created_at")
+    .eq("id", 1)
+    .single()
+
+  if (data) {
+
+    const existingDate = new Date(data.created_at)
+      .toISOString()
+      .split("T")[0]
+
+    if (existingDate === today) {
+      console.log("Circle message already generated today")
+      return
+    }
+
+  }
 
   console.log("NOFARI MORNING MESSAGE RUNNING")
 
+  /* =========================
+     GENERATE GROQ MESSAGE
+  ========================= */
+
   const msg = await generateCircleMessage(type, "supportive")
+
+  /* =========================
+     SAVE MESSAGE
+  ========================= */
 
   await supabase
     .from("circle_daily_message")
@@ -31,6 +54,10 @@ async function runCircle(type) {
       created_at: new Date()
     })
     .eq("id", 1)
+
+  /* =========================
+     SEND PUSH NOTIFICATIONS
+  ========================= */
 
   const { data: users } = await supabase
     .from("users")
