@@ -4,7 +4,9 @@ import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+
 import { startCircleJobs } from "./jobs/circleJobs.js";
+import circleRoute from "./routes/circleRoute.js";
 
 const app = express();
 
@@ -25,24 +27,10 @@ app.get("/", (req, res) => {
 
 
 /* =========================
-   DAILY CIRCLE MESSAGE
+   CIRCLE ROUTE (RESTORED)
 ========================= */
 
-global.circleMessage =
-  "Even small steps forward still move your life ahead.";
-
-
-/* =========================
-   CIRCLE MESSAGE ROUTE
-========================= */
-
-app.get("/circle-message", (req, res) => {
-
-  res.json({
-    message: global.circleMessage
-  });
-
-});
+app.use("/", circleRoute);
 
 
 /* =========================
@@ -64,7 +52,7 @@ async function sendCirclePush() {
       body: JSON.stringify({
         app_id: process.env.ONESIGNAL_APP_ID,
         included_segments: ["All"],
-        headings: { en: "NOFARI" },
+        headings: { en: "NOFARI's Circle" },
         contents: { en: "Your support message is ready." },
 
         data: {
@@ -101,7 +89,7 @@ app.get("/send-circle-push", async (req, res) => {
 
 
 /* =========================
-   EXISTING CHAT ROUTE
+   NOFARI CHAT ROUTE
 ========================= */
 
 app.post("/nofari", async (req, res) => {
