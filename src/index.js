@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import cron from "node-cron";
 
 const app = express();
 
@@ -29,6 +30,102 @@ app.get("/", (req, res) => {
 });
 
 
+/* =========================
+   DAILY CIRCLE GENERATOR
+========================= */
+
+async function generateDailyCircleMessage() {
+
+  const today = new Date().toISOString().slice(0,10);
+
+  const { data: existing } = await supabase
+    .from("circle_messages")
+    .select("*")
+    .gte("created_at", `${today}T00:00:00`)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    return existing[0].message;
+  }
+
+  const groq = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        model:"llama-3.1-8b-instant",
+        messages:[
+          {
+            role:"system",
+            content:
+            "Write a short powerful emotional support message for people struggling mentally. 1–2 sentences."
+          }
+        ]
+      })
+    }
+  );
+
+  const data = await groq.json();
+
+  const message =
+    data?.choices?.[0]?.message?.content ||
+    "You are stronger than the moment you are facing.";
+
+  await supabase.from("circle_messages").insert({
+    message
+  });
+
+  return message;
+}
+
+
+
+/* =========================
+   ONESIGNAL PUSH
+========================= */
+
+async function sendCirclePush(message) {
+
+  await fetch("https://onesignal.com/api/v1/notifications", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:`Basic ${process.env.ONESIGNAL_API_KEY}`
+    },
+    body:JSON.stringify({
+      app_id:process.env.ONESIGNAL_APP_ID,
+      included_segments:["All"],
+      headings:{en:"NOFARI's Circle"},
+      contents:{en:message}
+    })
+  });
+
+}
+
+
+
+/* =========================
+   DAILY SCHEDULE
+   7:00 AM EST MON-SAT
+========================= */
+
+cron.schedule("0 7 * * 1-6", async () => {
+
+  console.log("Running daily Circle message job");
+
+  const message = await generateDailyCircleMessage();
+
+  await sendCirclePush(message);
+
+}, {
+  timezone:"America/New_York"
+});
+
+
 
 /* =========================
    CIRCLE MESSAGE ROUTE
@@ -41,24 +138,22 @@ app.get("/circle-message", async (req, res) => {
     const { data } = await supabase
       .from("circle_messages")
       .select("message")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending:false })
       .limit(1)
       .single();
 
     if (data?.message) {
-      return res.json({ message: data.message });
+      return res.json({ message:data.message });
     }
 
-    res.json({
-      message: "Even small steps forward still move your life ahead."
-    });
+    const generated = await generateDailyCircleMessage();
 
-  } catch (error) {
+    res.json({ message:generated });
 
-    console.log("Circle message error:", error);
+  } catch {
 
     res.json({
-      message: "Even small steps forward still move your life ahead."
+      message:"You are stronger than the moment you are facing."
     });
 
   }
@@ -106,16 +201,16 @@ function detectFacts(text) {
 
     const name = text.split("my name is")[1]?.trim();
 
-    if (name) facts.push({ type: "name", value: name });
+    if (name) facts.push({ type:"name", value:name });
 
   }
 
   if (lower.includes("my daughter")) {
-    facts.push({ type: "family", value: "daughter" });
+    facts.push({ type:"family", value:"daughter" });
   }
 
   if (lower.includes("my son")) {
-    facts.push({ type: "family", value: "son" });
+    facts.push({ type:"family", value:"son" });
   }
 
   return facts;
@@ -135,12 +230,8 @@ app.post("/nofari", async (req, res) => {
     const { message, email } = req.body;
 
     if (!message || !email) {
-      return res.status(400).json({ error: "Missing message or email" });
+      return res.status(400).json({ error:"Missing message or email" });
     }
-
-
-
-    /* EMOTION TRACKING */
 
     const emotion = detectEmotion(message);
 
@@ -150,111 +241,52 @@ app.post("/nofari", async (req, res) => {
       message
     });
 
-
-
-    /* PERSONAL MEMORY */
-
     const facts = detectFacts(message);
 
     for (const f of facts) {
 
       await supabase.from("user_memory").insert({
         email,
-        type: f.type,
-        value: f.value
+        type:f.type,
+        value:f.value
       });
 
     }
 
-
-
-    /* SAVE USER MESSAGE */
-
     await supabase.from("conversation_memory").insert({
       email,
-      role: "user",
+      role:"user",
       message
     });
 
-
-
-    /* LOAD LAST 15 MESSAGES */
-
-    const { data: history } = await supabase
+    const { data:history } = await supabase
       .from("conversation_memory")
       .select("*")
       .eq("email", email)
-      .order("created_at", { ascending: false })
+      .order("created_at",{ascending:false})
       .limit(15);
-
-
 
     const messages = history
       .reverse()
       .map(m => ({
-        role: m.role === "user" ? "user" : "assistant",
-        content: m.message
+        role: m.role === "user" ? "user":"assistant",
+        content:m.message
       }));
-
-
-
-    /* LOAD PERSONAL MEMORY */
-
-    const { data: memory } = await supabase
-      .from("user_memory")
-      .select("*")
-      .eq("email", email)
-      .limit(10);
-
-
-
-    let memoryContext = "";
-
-    if (memory && memory.length > 0) {
-
-      memoryContext = "User facts:\n";
-
-      memory.forEach(f => {
-        memoryContext += `${f.type}: ${f.value}\n`;
-      });
-
-    }
-
-
-
-    /* SYSTEM PROMPT */
-
-    messages.unshift({
-      role: "system",
-      content:
-`You are NOFARI, a calm supportive AI with warm big-sister energy.
-
-Use supportive emotional language.
-
-Here is known user information:
-${memoryContext}`
-    });
-
-
-
-    /* GROQ REQUEST */
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
+        method:"POST",
+        headers:{
+          Authorization:`Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type":"application/json"
         },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
+        body:JSON.stringify({
+          model:"llama-3.1-8b-instant",
           messages
         })
       }
     );
-
-
 
     const data = await response.json();
 
@@ -262,76 +294,58 @@ ${memoryContext}`
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-
-
-    /* SAVE AI RESPONSE */
-
     await supabase.from("conversation_memory").insert({
       email,
-      role: "nofari",
-      message: reply
+      role:"nofari",
+      message:reply
     });
 
 
+/* =========================
+   ELEVENLABS VOICE
+========================= */
 
-    /* =========================
-       ELEVENLABS VOICE
-    ========================= */
+const voiceResponse = await fetch(
+  `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
+  {
+    method:"POST",
+    headers:{
+      "xi-api-key":process.env.ELEVENLABS_API_KEY,
+      "Content-Type":"application/json",
+      Accept:"audio/mpeg"
+    },
+    body:JSON.stringify({
+      text:reply,
+      model_id:"eleven_multilingual_v2"
+    })
+  }
+);
 
-    const voiceResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": process.env.ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          Accept: "audio/mpeg"
-        },
-        body: JSON.stringify({
-          text: reply,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.45,
-            similarity_boost: 0.75
-          }
-        })
-      }
-    );
+const buffer = Buffer.from(await voiceResponse.arrayBuffer());
 
+const filename = `nofari-${crypto.randomUUID()}.mp3`;
+const filepath = path.join(AUDIO_DIR, filename);
 
+fs.writeFileSync(filepath, buffer);
 
-    const buffer = Buffer.from(await voiceResponse.arrayBuffer());
+const audioUrl = `/audio/${filename}`;
 
-    const filename = `nofari-${crypto.randomUUID()}.mp3`;
-
-    const filepath = path.join(AUDIO_DIR, filename);
-
-    fs.writeFileSync(filepath, buffer);
-
-    const audioUrl = `/audio/${filename}`;
-
-
-
-    res.json({
-      reply,
-      audioUrl
-    });
+res.json({
+  reply,
+  audioUrl
+});
 
   } catch (err) {
 
     console.error("NOFARI error:", err);
 
-    res.status(500).json({ error: "server error" });
+    res.status(500).json({ error:"server error" });
 
   }
 
 });
 
 
-
-/* =========================
-   START SERVER
-========================= */
 
 const PORT = process.env.PORT || 10000;
 
