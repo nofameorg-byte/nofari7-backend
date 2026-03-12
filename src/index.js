@@ -4,9 +4,8 @@ import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-
 import { startCircleJobs } from "./jobs/circleJobs.js";
-import circleRoute from "./routes/circleRoute.js";
+import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 
 const app = express();
 
@@ -27,10 +26,30 @@ app.get("/", (req, res) => {
 
 
 /* =========================
-   CIRCLE ROUTE (RESTORED)
+   CIRCLE MESSAGE ROUTE
 ========================= */
 
-app.use("/", circleRoute);
+app.get("/circle-message", async (req, res) => {
+
+  try {
+
+    const message = await getDailyCircleMessage();
+
+    res.json({
+      message
+    });
+
+  } catch (err) {
+
+    console.log("Circle route error:", err);
+
+    res.json({
+      message: "Even small steps forward still move your life ahead."
+    });
+
+  }
+
+});
 
 
 /* =========================
