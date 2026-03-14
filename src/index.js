@@ -184,6 +184,8 @@ app.post("/nofari", async (req, res) => {
 
     const { message, email } = req.body;
 
+    console.log("NOFARI REQUEST:", { email, message });
+
     if (!message) {
       return res.json({
         reply: "I'm here. Tell me what's going on."
