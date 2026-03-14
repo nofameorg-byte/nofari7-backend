@@ -24,12 +24,6 @@ const supabase = createClient(
 );
 
 /* =========================
-   CREATOR SESSION MEMORY
-========================= */
-
-const creatorSessions = new Set();
-
-/* =========================
    AUDIO STORAGE
 ========================= */
 
@@ -192,35 +186,11 @@ app.post("/nofari", async (req, res) => {
       });
     }
 
-    const msgLower = message.toLowerCase();
-
     /* =========================
-       CREATOR ACTIVATION
+       CREATOR DETECTION
     ========================= */
 
-    if (
-      email === "nofameorg@gmail.com" &&
-      msgLower.includes("master key aaliyah")
-    ) {
-      creatorSessions.add(email);
-    }
-
-    /* =========================
-       CREATOR EXIT
-    ========================= */
-
-    if (
-      email === "nofameorg@gmail.com" &&
-      msgLower.includes("exit master key")
-    ) {
-      creatorSessions.delete(email);
-    }
-
-    /* =========================
-       CREATOR STATUS
-    ========================= */
-
-    const isCreator = creatorSessions.has(email);
+    const isCreator = email === "nofameorg@gmail.com";
 
     const systemPrompt = `
 ${NOFARI_DIRECTIVES}
@@ -354,7 +324,7 @@ ${memoryContext}`
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
+          model: "llama-3.1-70b-versatile",
           messages
         })
       }
