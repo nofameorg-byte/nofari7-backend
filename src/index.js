@@ -197,7 +197,7 @@ app.post("/nofari", async (req, res) => {
     ========================= */
 
     if (
-      email === "nofame@gmail.com" &&
+      email === "nofameorg@gmail.com" &&
       msgLower.includes("master key aaliyah")
     ) {
       creatorSessions.add(email);
@@ -208,7 +208,7 @@ app.post("/nofari", async (req, res) => {
     ========================= */
 
     if (
-      email === "nofame@gmail.com" &&
+      email === "nofameorg@gmail.com" &&
       msgLower.includes("exit master key")
     ) {
       creatorSessions.delete(email);
