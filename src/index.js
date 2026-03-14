@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
+import { NOFARI_DIRECTIVES } from "./config/directives.js";
 
 const app = express();
 
@@ -22,6 +23,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+/* =========================
+   CREATOR SESSION MEMORY
+========================= */
+
+const creatorSessions = new Set();
+
+/* =========================
+   AUDIO STORAGE
+========================= */
+
 const AUDIO_DIR = "/tmp/nofari-audio";
 
 if (!fs.existsSync(AUDIO_DIR)) {
@@ -33,7 +44,6 @@ app.use("/audio", express.static(AUDIO_DIR));
 app.get("/", (req, res) => {
   res.send("NOFARI backend running");
 });
-
 
 /* =========================
    EMOTION DETECTOR
@@ -58,7 +68,6 @@ function detectEmotion(text) {
   return "neutral";
 
 }
-
 
 /* =========================
    PERSONAL FACT DETECTOR
@@ -90,7 +99,6 @@ function detectFacts(text) {
 
 }
 
-
 /* =========================
    CIRCLE MESSAGE ROUTE
 ========================= */
@@ -116,7 +124,6 @@ app.get("/circle-message", async (req, res) => {
   }
 
 });
-
 
 /* =========================
    ONE SIGNAL PUSH FUNCTION
@@ -153,7 +160,6 @@ async function sendCirclePush() {
 
 }
 
-
 /* =========================
    MANUAL PUSH TEST ROUTE
 ========================= */
@@ -167,7 +173,6 @@ app.get("/send-circle-push", async (req, res) => {
   });
 
 });
-
 
 /* =========================
    NOFARI CHAT ROUTE
@@ -185,6 +190,42 @@ app.post("/nofari", async (req, res) => {
       });
     }
 
+    const msgLower = message.toLowerCase();
+
+    /* =========================
+       CREATOR ACTIVATION
+    ========================= */
+
+    if (
+      email === "nofame@gmail.com" &&
+      msgLower.includes("master key aaliyah")
+    ) {
+      creatorSessions.add(email);
+    }
+
+    /* =========================
+       CREATOR EXIT
+    ========================= */
+
+    if (
+      email === "nofame@gmail.com" &&
+      msgLower.includes("exit master key")
+    ) {
+      creatorSessions.delete(email);
+    }
+
+    /* =========================
+       CREATOR STATUS
+    ========================= */
+
+    const isCreator = creatorSessions.has(email);
+
+    const systemPrompt = `
+${NOFARI_DIRECTIVES}
+
+Creator Verified: ${isCreator}
+`;
+
     /* =========================
        EMOTION TRACKING
     ========================= */
@@ -200,7 +241,6 @@ app.post("/nofari", async (req, res) => {
       });
 
     }
-
 
     /* =========================
        STORE PERSONAL FACTS
@@ -222,7 +262,6 @@ app.post("/nofari", async (req, res) => {
 
     }
 
-
     /* =========================
        SAVE USER MESSAGE
     ========================= */
@@ -236,7 +275,6 @@ app.post("/nofari", async (req, res) => {
       });
 
     }
-
 
     /* =========================
        LOAD LAST 15 MESSAGES
@@ -266,7 +304,6 @@ app.post("/nofari", async (req, res) => {
 
     }
 
-
     /* =========================
        LOAD PERSONAL MEMORY
     ========================= */
@@ -293,17 +330,14 @@ app.post("/nofari", async (req, res) => {
 
     }
 
-
     messages.unshift({
       role: "system",
-      content:
-`You are NOFARI, a calm emotional support AI with warm big-sister energy.
+      content: `${systemPrompt}
 
 You remember important things about the user and speak with empathy.
 
 ${memoryContext}`
     });
-
 
     /* =========================
        GROQ REQUEST
@@ -330,7 +364,6 @@ ${memoryContext}`
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
 
-
     if (email) {
 
       await supabase.from("conversation_memory").insert({
@@ -340,7 +373,6 @@ ${memoryContext}`
       });
 
     }
-
 
     /* =========================
        VOICE
@@ -391,7 +423,6 @@ ${memoryContext}`
   }
 
 });
-
 
 const PORT = process.env.PORT || 10000;
 
