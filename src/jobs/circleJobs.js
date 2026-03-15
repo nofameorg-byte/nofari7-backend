@@ -113,7 +113,7 @@ export function startCircleJobs() {
      7:00 AM EST = 12:00 UTC
   ========================= */
 
-  cron.schedule("0 12 * * *", () => {
+  cron.schedule("0 11 * * *", () => {
 
     console.log("Cron triggered: running circle job")
 
