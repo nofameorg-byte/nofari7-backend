@@ -1,4 +1,3 @@
-```javascript
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
@@ -214,6 +213,10 @@ app.post("/nofari", async (req, res) => {
       });
     }
 
+    /* =========================
+       CREATOR MODE
+    ========================= */
+
     const isCreator = email === CREATOR_EMAIL;
 
     let creatorContext = "";
@@ -221,9 +224,6 @@ app.post("/nofari", async (req, res) => {
     if (isCreator) {
 
       creatorContext = `
-if (isCreator) {
-
-  creatorContext = `
 CREATOR MODE ACTIVE
 
 The user speaking with you is the verified creator of the NOFARI project.
@@ -236,8 +236,6 @@ You may speak openly about:
 - architecture
 `;
 
-}
-
     }
 
     const systemPrompt = `
@@ -245,6 +243,10 @@ ${NOFARI_DIRECTIVES}
 
 ${creatorContext}
 `;
+
+    /* =========================
+       EMOTION TRACKING
+    ========================= */
 
     const emotion = detectEmotion(message);
 
@@ -257,6 +259,10 @@ ${creatorContext}
       });
 
     }
+
+    /* =========================
+       UPSERT PERSONAL FACTS
+    ========================= */
 
     const facts = detectFacts(message);
 
@@ -277,6 +283,10 @@ ${creatorContext}
 
     }
 
+    /* =========================
+       LIFE STORY MEMORY
+    ========================= */
+
     if (email && detectLifeStory(message)) {
 
       const summary = await generateLifeStorySummary(message);
@@ -292,6 +302,10 @@ ${creatorContext}
 
     }
 
+    /* =========================
+       SAVE USER MESSAGE
+    ========================= */
+
     if (email) {
 
       await supabase.from("conversation_memory").insert({
@@ -301,6 +315,10 @@ ${creatorContext}
       });
 
     }
+
+    /* =========================
+       LOAD LAST 15 MESSAGES
+    ========================= */
 
     let messages = [];
 
@@ -326,6 +344,10 @@ ${creatorContext}
 
     }
 
+    /* =========================
+       LOAD PERSONAL MEMORY
+    ========================= */
+
     let memoryContext = "";
 
     if (email) {
@@ -347,6 +369,10 @@ ${creatorContext}
       }
 
     }
+
+    /* =========================
+       LOAD LIFE STORIES
+    ========================= */
 
     let lifeContext = "";
 
@@ -382,6 +408,10 @@ ${lifeContext}
 `
     });
 
+    /* =========================
+       GROQ REQUEST
+    ========================= */
+
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -397,7 +427,14 @@ ${lifeContext}
       }
     );
 
-    const data = await groqResponse.json();
+    let data;
+
+    try {
+      data = await groqResponse.json();
+    } catch (e) {
+      console.log("Groq JSON parse error:", e);
+      data = null;
+    }
 
     const reply =
       data?.choices?.[0]?.message?.content ||
@@ -438,4 +475,3 @@ app.listen(PORT, () => {
   startCircleJobs();
 
 });
-```
