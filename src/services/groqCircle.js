@@ -41,7 +41,7 @@ temperature: 0.85
 },
 {
 headers:{
-Authorization:`Bearer ${process.env.GROQ_API_KEY}`,
+Authorization: "Bearer " + process.env.GROQ_API_KEY,
 "Content-Type":"application/json"
 }
 }

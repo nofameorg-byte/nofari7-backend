@@ -138,7 +138,7 @@ async function generateLifeStorySummary(message) {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          Authorization: "Bearer " + process.env.GROQ_API_KEY,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -214,10 +214,6 @@ app.post("/nofari", async (req, res) => {
       });
     }
 
-    /* =========================
-       CREATOR MODE
-    ========================= */
-
     const isCreator = email === CREATOR_EMAIL;
 
     let creatorContext = "";
@@ -245,10 +241,6 @@ ${NOFARI_DIRECTIVES}
 ${creatorContext}
 `;
 
-    /* =========================
-       EMOTION TRACKING
-    ========================= */
-
     const emotion = detectEmotion(message);
 
     if (email) {
@@ -260,10 +252,6 @@ ${creatorContext}
       });
 
     }
-
-    /* =========================
-       UPSERT PERSONAL FACTS
-    ========================= */
 
     const facts = detectFacts(message);
 
@@ -284,10 +272,6 @@ ${creatorContext}
 
     }
 
-    /* =========================
-       LIFE STORY MEMORY
-    ========================= */
-
     if (email && detectLifeStory(message)) {
 
       const summary = await generateLifeStorySummary(message);
@@ -303,10 +287,6 @@ ${creatorContext}
 
     }
 
-    /* =========================
-       SAVE USER MESSAGE
-    ========================= */
-
     if (email) {
 
       await supabase.from("conversation_memory").insert({
@@ -316,10 +296,6 @@ ${creatorContext}
       });
 
     }
-
-    /* =========================
-       LOAD LAST 15 MESSAGES
-    ========================= */
 
     let messages = [];
 
@@ -345,10 +321,6 @@ ${creatorContext}
 
     }
 
-    /* =========================
-       LOAD PERSONAL MEMORY
-    ========================= */
-
     let memoryContext = "";
 
     if (email) {
@@ -370,10 +342,6 @@ ${creatorContext}
       }
 
     }
-
-    /* =========================
-       LOAD LIFE STORIES
-    ========================= */
 
     let lifeContext = "";
 
@@ -409,16 +377,12 @@ ${lifeContext}
 `
     });
 
-    /* =========================
-       GROQ REQUEST
-    ========================= */
-
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          Authorization: "Bearer " + process.env.GROQ_API_KEY,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
