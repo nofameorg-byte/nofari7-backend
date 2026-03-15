@@ -488,7 +488,7 @@ try {
 
     res.json({
       reply,
-      audio: audioUrl
+      audioUrl
     });
 
   } catch (error) {
@@ -497,7 +497,7 @@ try {
 
     res.json({
       reply: "I'm here with you.",
-      audio: null
+      audioUrl: null
     });
 
   }
