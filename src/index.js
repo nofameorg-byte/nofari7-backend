@@ -434,40 +434,47 @@ ${lifeContext}
       "I'm here with you.";
 
     /* =========================
-       GENERATE VOICE
-    ========================= */
+   GENERATE VOICE
+========================= */
 
-    let audioUrl = null;
+let audioUrl = null;
 
-    try {
+try {
 
-      const audioId = crypto.randomBytes(8).toString("hex");
-      const audioPath = `${AUDIO_DIR}/${audioId}.mp3`;
+  const audioId = crypto.randomBytes(8).toString("hex");
+  const audioPath = `${AUDIO_DIR}/${audioId}.mp3`;
 
-      const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-          input: reply
-        })
-      });
-
-      const buffer = Buffer.from(await ttsResponse.arrayBuffer());
-
-      fs.writeFileSync(audioPath, buffer);
-
-      audioUrl = `/audio/${audioId}.mp3`;
-
-    } catch (err) {
-
-      console.log("TTS ERROR:", err);
-
+  const voiceResponse = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg"
+      },
+      body: JSON.stringify({
+        text: reply,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.45,
+          similarity_boost: 0.75
+        }
+      })
     }
+  );
+
+  const buffer = Buffer.from(await voiceResponse.arrayBuffer());
+
+  fs.writeFileSync(audioPath, buffer);
+
+  audioUrl = `/audio/${audioId}.mp3`;
+
+} catch (err) {
+
+  console.log("ELEVENLABS ERROR:", err);
+
+}
 
     if (email) {
 
