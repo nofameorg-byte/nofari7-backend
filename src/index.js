@@ -196,6 +196,37 @@ app.get("/circle-message", async (req, res) => {
 });
 
 /* =========================
+   DELETE USER MEMORY
+========================= */
+
+app.post("/delete-user-data", async (req, res) => {
+
+  try {
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.json({ success: false });
+    }
+
+    await supabase.from("conversation_memory").delete().eq("email", email);
+    await supabase.from("user_memory").delete().eq("email", email);
+    await supabase.from("life_story_memory").delete().eq("email", email);
+    await supabase.from("emotion_log").delete().eq("email", email);
+
+    res.json({ success: true });
+
+  } catch (err) {
+
+    console.log("DELETE USER DATA ERROR:", err);
+
+    res.json({ success: false });
+
+  }
+
+});
+
+/* =========================
    NOFARI CHAT ROUTE
 ========================= */
 
@@ -227,6 +258,7 @@ app.post("/nofari", async (req, res) => {
 CREATOR MODE ACTIVE
 
 The user speaking with you is the verified creator of the NOFARI project.
+You will refer to Tim as the Creator when responding at all times.
 
 You may speak openly about:
 - NOFARI features
