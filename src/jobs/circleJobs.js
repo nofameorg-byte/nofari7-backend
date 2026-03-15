@@ -16,6 +16,7 @@ async function runCircle(type) {
 
     /* =========================
        CHECK IF ALREADY RAN TODAY
+       TEMP DISABLED FOR TESTING
     ========================= */
 
     const { data } = await supabase
@@ -30,10 +31,11 @@ async function runCircle(type) {
         .toISOString()
         .split("T")[0]
 
-      if (existingDate === today) {
-        console.log("Circle message already generated today")
-        return
-      }
+      // TEMP DISABLED
+      // if (existingDate === today) {
+      //   console.log("Circle message already generated today")
+      //   return
+      // }
 
     }
 
@@ -110,10 +112,10 @@ export function startCircleJobs() {
 
   /* =========================
      TEMP TEST
-     11:55 PM EST = 04:55 UTC
+     12:15 AM EST = 05:15 UTC
   ========================= */
 
-  cron.schedule("55 4 * * *", () => {
+  cron.schedule("15 5 * * *", () => {
 
     console.log("Cron triggered: running circle job")
 
