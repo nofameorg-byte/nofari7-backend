@@ -427,18 +427,47 @@ ${lifeContext}
       }
     );
 
-    let data;
-
-    try {
-      data = await groqResponse.json();
-    } catch (e) {
-      console.log("Groq JSON parse error:", e);
-      data = null;
-    }
+    const data = await groqResponse.json();
 
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
+
+    /* =========================
+       GENERATE VOICE
+    ========================= */
+
+    let audioUrl = null;
+
+    try {
+
+      const audioId = crypto.randomBytes(8).toString("hex");
+      const audioPath = `${AUDIO_DIR}/${audioId}.mp3`;
+
+      const ttsResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini-tts",
+          voice: "alloy",
+          input: reply
+        })
+      });
+
+      const buffer = Buffer.from(await ttsResponse.arrayBuffer());
+
+      fs.writeFileSync(audioPath, buffer);
+
+      audioUrl = `/audio/${audioId}.mp3`;
+
+    } catch (err) {
+
+      console.log("TTS ERROR:", err);
+
+    }
 
     if (email) {
 
@@ -451,7 +480,8 @@ ${lifeContext}
     }
 
     res.json({
-      reply
+      reply,
+      audio: audioUrl
     });
 
   } catch (error) {
@@ -459,7 +489,8 @@ ${lifeContext}
     console.log("NOFARI ERROR:", error);
 
     res.json({
-      reply: "I'm here with you."
+      reply: "I'm here with you.",
+      audio: null
     });
 
   }
