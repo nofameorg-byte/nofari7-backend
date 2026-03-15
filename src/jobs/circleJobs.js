@@ -74,12 +74,11 @@ async function runCircle(type) {
     const { data: users } = await supabase
       .from("users")
       .select("onesignal_player_id")
+      .not("onesignal_player_id", "is", null)
 
     let pushCount = 0
 
     for (const user of users) {
-
-      if (!user.onesignal_player_id) continue
 
       try {
 
@@ -109,8 +108,12 @@ export function startCircleJobs() {
 
   console.log("Circle scheduler started")
 
-  // Runs every day at 7:00 AM
-  cron.schedule("0 7 * * *", () => {
+  /* =========================
+     TEMP TEST
+     11:55 PM EST = 04:55 UTC
+  ========================= */
+
+  cron.schedule("55 4 * * *", () => {
 
     console.log("Cron triggered: running circle job")
 
