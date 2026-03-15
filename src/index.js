@@ -221,6 +221,9 @@ app.post("/nofari", async (req, res) => {
     if (isCreator) {
 
       creatorContext = `
+if (isCreator) {
+
+  creatorContext = `
 CREATOR MODE ACTIVE
 
 The user speaking with you is the verified creator of the NOFARI project.
@@ -232,6 +235,8 @@ You may speak openly about:
 - product design
 - architecture
 `;
+
+}
 
     }
 
