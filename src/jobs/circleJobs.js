@@ -43,8 +43,6 @@ async function runCircle(type) {
        GENERATE GROQ MESSAGE
     ========================= */
 
-    console.log("Generating circle message...")
-
     const msg = await generateCircleMessage(type, "supportive")
 
     console.log("Generated message:", msg)
@@ -52,8 +50,6 @@ async function runCircle(type) {
     /* =========================
        SAVE MESSAGE
     ========================= */
-
-    console.log("Saving message to Supabase...")
 
     await supabase
       .from("circle_daily_message")
@@ -66,35 +62,14 @@ async function runCircle(type) {
     console.log("Message saved successfully")
 
     /* =========================
-       SEND PUSH NOTIFICATIONS
+       SEND PUSH TO ALL USERS
     ========================= */
 
-    console.log("Fetching users with push enabled...")
+    console.log("Sending push to all subscribed users...")
 
-    const { data: users } = await supabase
-      .from("users")
-      .select("onesignal_player_id")
-      .not("onesignal_player_id", "is", null)
+    await sendPush(msg)
 
-    let pushCount = 0
-
-    for (const user of users) {
-
-      try {
-
-        await sendPush(user.onesignal_player_id, msg)
-
-        pushCount++
-
-      } catch (err) {
-
-        console.error("Push failed:", err)
-
-      }
-
-    }
-
-    console.log(`Push notifications sent: ${pushCount}`)
+    console.log("Push sent successfully")
 
   } catch (err) {
 
@@ -109,8 +84,7 @@ export function startCircleJobs() {
   console.log("Circle scheduler started")
 
   /* =========================
-     RUN DAILY AT 7:00 AM EST
-     7:00 AM EST = 12:00 UTC
+     7:00 AM EST = 11:00 UTC
   ========================= */
 
   cron.schedule("0 11 * * *", () => {
