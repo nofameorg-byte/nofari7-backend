@@ -258,9 +258,7 @@ The user uploaded a file named "${file.originalname}".
 `;
 
   // PDF SUPPORT
-  if (
-    file.mimetype === "application/pdf"
-  ) {
+  if (file.mimetype === "application/pdf") {
 
     try {
 
@@ -276,7 +274,7 @@ ${pdfData.text.slice(0, 4000)}
 Analyze and explain this PDF naturally and clearly.
 `;
 
-          } catch (err) {
+    } catch (err) {
 
       console.log("PDF PARSE ERROR:", err);
 
@@ -288,30 +286,30 @@ The PDF could not be fully analyzed.
 
   }
 
-  // IMAGE SUPPORT (basic for now)
+  // IMAGE SUPPORT
   else if (file.mimetype?.startsWith("image/")) {
 
-  try {
+    try {
 
-    const base64Image = toBase64(file.path);
+      const base64Image = toBase64(file.path);
 
-    const visionResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + process.env.GROQ_API_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-4-maverick-17b-128e-instruct",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `
+      const visionResponse = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + process.env.GROQ_API_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `
 Analyze this uploaded image in detail.
 
 Describe:
@@ -323,27 +321,27 @@ Describe:
 
 If it is a document or screenshot, explain it clearly.
 `
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:${file.mimetype};base64,${base64Image}`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${file.mimetype};base64,${base64Image}`
+                    }
                   }
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
+                ]
+              }
+            ]
+          })
+        }
+      );
 
-    const visionData = await visionResponse.json();
+      const visionData = await visionResponse.json();
 
-    const imageAnalysis =
-      visionData?.choices?.[0]?.message?.content ||
-      "The image could not be analyzed.";
+      const imageAnalysis =
+        visionData?.choices?.[0]?.message?.content ||
+        "The image could not be analyzed.";
 
-    enhancedMessage += `
+      enhancedMessage += `
 
 IMAGE ANALYSIS:
 ${imageAnalysis}
@@ -351,13 +349,15 @@ ${imageAnalysis}
 Respond naturally to the user while incorporating the image understanding.
 `;
 
-  } catch (err) {
+    } catch (err) {
 
-    console.log("VISION ERROR:", err);
+      console.log("VISION ERROR:", err);
 
-    enhancedMessage += `
+      enhancedMessage += `
 The uploaded image could not be fully analyzed.
 `;
+
+    }
 
   }
 
