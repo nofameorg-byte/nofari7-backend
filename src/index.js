@@ -9,6 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
+import pdfParse from "pdf-parse";
 
 const app = express();
 
@@ -249,10 +250,49 @@ if (file) {
 
   enhancedMessage += `
 The user uploaded a file named "${file.originalname}".
-
-Respond naturally and acknowledge the upload.
-Ask what they would like help with regarding the file.
 `;
+
+  // PDF SUPPORT
+  if (
+    file.mimetype === "application/pdf"
+  ) {
+
+    try {
+
+      const pdfBuffer = fs.readFileSync(file.path);
+
+      const pdfData = await pdfParse(pdfBuffer);
+
+      enhancedMessage += `
+
+PDF CONTENT:
+${pdfData.text.slice(0, 4000)}
+
+Analyze and explain this PDF naturally and clearly.
+`;
+
+    } catch (err) {
+
+      console.log("PDF PARSE ERROR:", err);
+
+      enhancedMessage += `
+The PDF could not be fully analyzed.
+`;
+
+    }
+
+  }
+
+  // IMAGE SUPPORT (basic for now)
+  else if (file.mimetype?.startsWith("image/")) {
+
+    enhancedMessage += `
+The uploaded file is an image.
+
+Describe what may be visible if possible and ask the user what they would like help understanding about the image.
+`;
+
+  }
 
 }
 
