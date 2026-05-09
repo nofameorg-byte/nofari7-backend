@@ -276,7 +276,7 @@ ${pdfData.text.slice(0, 4000)}
 Analyze and explain this PDF naturally and clearly.
 `;
 
-    } catch (err) {
+          } catch (err) {
 
       console.log("PDF PARSE ERROR:", err);
 
