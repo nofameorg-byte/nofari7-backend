@@ -2,6 +2,10 @@ import express from "express";
 import { exec } from "child_process";
 import path from "path";
 import fs from "fs";
+import multer from "multer";
+
+app.use(express.json());
+const upload = multer({ dest: "/tmp/uploads" });
 
 const router = express.Router();
 

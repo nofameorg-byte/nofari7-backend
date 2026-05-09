@@ -8,11 +8,15 @@ import { createClient } from "@supabase/supabase-js";
 import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
+import multer from "multer";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+
+const upload = multer({ dest: "/tmp/uploads" });
 
 /* =========================
    CREATOR SETTINGS
@@ -230,19 +234,38 @@ app.post("/delete-user-data", async (req, res) => {
    NOFARI CHAT ROUTE
 ========================= */
 
-app.post("/nofari", async (req, res) => {
+app.post("/nofari", upload.single("file"), async (req, res) => {
 
   try {
 
     const { message, email } = req.body;
+const file = req.file;
 
-    console.log("NOFARI REQUEST:", { email, message });
+console.log("UPLOADED FILE:", file);
 
-    if (!message) {
-      return res.json({
-        reply: "I'm here. Tell me what's going on."
-      });
-    }
+let enhancedMessage = message || "";
+
+if (file) {
+
+  enhancedMessage += `
+The user uploaded a file named "${file.originalname}".
+
+Respond naturally and acknowledge the upload.
+Ask what they would like help with regarding the file.
+`;
+
+}
+
+console.log("NOFARI REQUEST:", {
+  email,
+  message: enhancedMessage
+});
+
+if (!enhancedMessage.trim()) {
+  return res.json({
+    reply: "I'm here. Tell me what's going on."
+  });
+}
 
     /* =========================
        CREATOR MODE
@@ -280,14 +303,14 @@ ${creatorContext}
        EMOTION TRACKING
     ========================= */
 
-    const emotion = detectEmotion(message);
+    const emotion = detectEmotion(enhancedMessage);
 
     if (email) {
 
       await supabase.from("emotion_log").insert({
         email,
         emotion,
-        message
+        message: enhancedMessage
       });
 
     }
@@ -296,7 +319,7 @@ ${creatorContext}
        UPSERT PERSONAL FACTS
     ========================= */
 
-    const facts = detectFacts(message);
+    const facts = detectFacts(enhancedMessage);
 
     if (email) {
 
@@ -319,9 +342,9 @@ ${creatorContext}
        LIFE STORY MEMORY
     ========================= */
 
-    if (email && detectLifeStory(message)) {
+    if (email && detectLifeStory(enhancedMessage)) {
 
-      const summary = await generateLifeStorySummary(message);
+      const summary = await generateLifeStorySummary(enhancedMessage);
 
       if (summary) {
 
@@ -343,7 +366,7 @@ ${creatorContext}
       await supabase.from("conversation_memory").insert({
         email,
         role: "user",
-        message
+        message: enhancedMessage
       });
 
     }
@@ -500,7 +523,7 @@ try {
 
   fs.writeFileSync(audioPath, buffer);
 
-  audioUrl = `/audio/${audioId}.mp3`;
+  audioUrl = `https://nofari7-backend.onrender.com/audio/${audioId}.mp3`;
 
 } catch (err) {
 
