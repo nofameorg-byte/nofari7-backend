@@ -19,6 +19,11 @@ app.use(express.json());
 
 const upload = multer({ dest: "/tmp/uploads" });
 
+const toBase64 = (filePath) => {
+  const imageBuffer = fs.readFileSync(filePath);
+  return imageBuffer.toString("base64");
+};
+
 /* =========================
    CREATOR SETTINGS
 ========================= */
@@ -286,10 +291,72 @@ The PDF could not be fully analyzed.
   // IMAGE SUPPORT (basic for now)
   else if (file.mimetype?.startsWith("image/")) {
 
-    enhancedMessage += `
-The uploaded file is an image.
+  try {
 
-Describe what may be visible if possible and ask the user what they would like help understanding about the image.
+    const base64Image = toBase64(file.path);
+
+    const visionResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + process.env.GROQ_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `
+Analyze this uploaded image in detail.
+
+Describe:
+- important objects
+- colors
+- text in the image
+- emotional tone
+- possible meaning/context
+
+If it is a document or screenshot, explain it clearly.
+`
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${file.mimetype};base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
+
+    const visionData = await visionResponse.json();
+
+    const imageAnalysis =
+      visionData?.choices?.[0]?.message?.content ||
+      "The image could not be analyzed.";
+
+    enhancedMessage += `
+
+IMAGE ANALYSIS:
+${imageAnalysis}
+
+Respond naturally to the user while incorporating the image understanding.
+`;
+
+  } catch (err) {
+
+    console.log("VISION ERROR:", err);
+
+    enhancedMessage += `
+The uploaded image could not be fully analyzed.
 `;
 
   }
