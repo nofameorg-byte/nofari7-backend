@@ -337,6 +337,8 @@ If it is a document or screenshot, explain it clearly.
 
       const visionData = await visionResponse.json();
 
+      console.log("VISION DATA:", JSON.stringify(visionData, null, 2));
+
       const imageAnalysis =
         visionData?.choices?.[0]?.message?.content ||
         "The image could not be analyzed.";
