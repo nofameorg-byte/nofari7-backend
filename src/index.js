@@ -9,7 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
-import pdf from "pdf-parse";
+import * as pdf from "pdf-parse";
 
 const app = express();
 
@@ -261,7 +261,7 @@ The user uploaded a file named "${file.originalname}".
 
       const pdfBuffer = fs.readFileSync(file.path);
 
-      const pdfData = await pdf(pdfBuffer);
+      const pdfData = await pdf.default(pdfBuffer);
 
       enhancedMessage += `
 
