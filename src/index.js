@@ -9,7 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
-import pdfToImg from "pdf-to-img";
+import * as pdfToImg from "pdf-to-img";
 
 const app = express();
 
@@ -265,7 +265,7 @@ The user uploaded a file named "${file.originalname}".
     const pdfBuffer = fs.readFileSync(file.path);
 
     // convert FIRST PAGE of PDF to image
-    const document = await pdfToImg(pdfBuffer, {
+    const document = await pdfToImg.pdfToImg(pdfBuffer, {
       scale: 2
     });
 
