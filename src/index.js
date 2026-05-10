@@ -9,7 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
-import * as pdfParse from "pdf-parse";
+import { fromPath } from "pdf2pic";
 
 const app = express();
 
@@ -260,46 +260,90 @@ The user uploaded a file named "${file.originalname}".
   // PDF SUPPORT
   if (file.mimetype === "application/pdf") {
 
-    try {
+  try {
 
-      const pdfBuffer = fs.readFileSync(file.path);
+    const convert = fromPath(file.path, {
+      density: 150,
+      saveFilename: "page",
+      savePath: "/tmp",
+      format: "png",
+      width: 1200,
+      height: 1600
+    });
 
-      const pdfData = await pdfParse.default(pdfBuffer);
+    // convert FIRST PAGE
+    const page = await convert(1);
 
-      enhancedMessage += `
+    // read converted image
+    const imageBuffer = fs.readFileSync(page.path);
 
-PDF CONTENT:
-${pdfData.text.slice(0, 20000)}
+    // convert to base64
+    const base64Image = imageBuffer.toString("base64");
 
-Analyze this PDF in detail.
+    // send image to OpenAI Vision
+    const visionResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Analyze this PDF document page in detail. Explain what the document is, important names, dates, forms, legal meaning, summaries, instructions, and what the user should understand from it."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/png;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 1200
+        })
+      }
+    );
 
-Explain:
-- what the document is
-- important names
-- dates
-- legal meaning
-- forms
-- sections
-- summaries
-- warnings
-- instructions
-- what the user should understand from it
+    const visionData = await visionResponse.json();
 
-If the document is a form, explain what the form is for.
-If the document is legal, explain it in simple language.
+    console.log(
+      "PDF VISION DATA:",
+      JSON.stringify(visionData, null, 2)
+    );
+
+    const pdfAnalysis =
+      visionData?.choices?.[0]?.message?.content ||
+      "The PDF could not be analyzed.";
+
+    enhancedMessage += `
+
+PDF ANALYSIS:
+${pdfAnalysis}
+
+Respond naturally while incorporating the PDF understanding.
 `;
 
-    } catch (err) {
+  } catch (err) {
 
-      console.log("PDF PARSE ERROR:", err);
+    console.log("PDF VISION ERROR:", err);
 
-      enhancedMessage += `
+    enhancedMessage += `
 The PDF could not be fully analyzed.
 `;
 
-    }
-
   }
+
+}
 
   // IMAGE SUPPORT
   else if (file.mimetype?.startsWith("image/")) {
