@@ -9,7 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
-import { pdfToImg } from "pdf-to-img";
+import pdfToImg from "pdf-to-img";
 
 const app = express();
 
