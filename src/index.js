@@ -264,7 +264,7 @@ The user uploaded a file named "${file.originalname}".
 
       const pdfBuffer = fs.readFileSync(file.path);
 
-      const pdfData = await pdf.default(pdfBuffer);
+      const pdfData = await pdf(pdfBuffer);
 
       enhancedMessage += `
 
