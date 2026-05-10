@@ -265,7 +265,7 @@ The user uploaded a file named "${file.originalname}".
     const pdfBuffer = fs.readFileSync(file.path);
 
     // convert FIRST PAGE of PDF to image
-    const document = await pdfToImg.pdfToImg(pdfBuffer, {
+    const document = await pdfToImg.convert(pdfBuffer, {
       scale: 2
     });
 
