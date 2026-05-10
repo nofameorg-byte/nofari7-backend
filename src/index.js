@@ -9,7 +9,7 @@ import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
-import { fromPath } from "pdf2pic";
+import { pdfToImg } from "pdf-to-img";
 
 const app = express();
 
@@ -262,25 +262,20 @@ The user uploaded a file named "${file.originalname}".
 
   try {
 
-    const convert = fromPath(file.path, {
-      density: 150,
-      saveFilename: "page",
-      savePath: "/tmp",
-      format: "png",
-      width: 1200,
-      height: 1600
+    const pdfBuffer = fs.readFileSync(file.path);
+
+    // convert FIRST PAGE of PDF to image
+    const document = await pdfToImg(pdfBuffer, {
+      scale: 2
     });
 
-    // convert FIRST PAGE
-    const page = await convert(1);
+    const firstPage = await document.getPage(1);
 
-    // read converted image
-    const imageBuffer = fs.readFileSync(page.path);
+    const imageBuffer = await firstPage.toBuffer();
 
-    // convert to base64
     const base64Image = imageBuffer.toString("base64");
 
-    // send image to OpenAI Vision
+    // SEND TO OPENAI VISION
     const visionResponse = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -298,7 +293,7 @@ The user uploaded a file named "${file.originalname}".
                 {
                   type: "text",
                   text:
-                    "Analyze this PDF document page in detail. Explain what the document is, important names, dates, forms, legal meaning, summaries, instructions, and what the user should understand from it."
+                    "Analyze this PDF document page in detail. Explain the document naturally including names, dates, legal meaning, summaries, instructions, forms, or important information."
                 },
                 {
                   type: "image_url",
