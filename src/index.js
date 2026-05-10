@@ -294,15 +294,15 @@ The PDF could not be fully analyzed.
       const base64Image = toBase64(file.path);
 
       const visionResponse = await fetch(
-        "https://api.groq.com/openai/v1/chat/completions",
+        "https://api.openai.com/v1/chat/completions",
         {
           method: "POST",
           headers: {
-            Authorization: "Bearer " + process.env.GROQ_API_KEY,
+            Authorization: "Bearer " + process.env.OPENAI_API_KEY,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+            model: "gpt-4o-mini",
             messages: [
               {
                 role: "user",
