@@ -269,9 +269,24 @@ The user uploaded a file named "${file.originalname}".
       enhancedMessage += `
 
 PDF CONTENT:
-${pdfData.text.slice(0, 4000)}
+${pdfData.text.slice(0, 20000)}
 
-Analyze and explain this PDF naturally and clearly.
+Analyze this PDF in detail.
+
+Explain:
+- what the document is
+- important names
+- dates
+- legal meaning
+- forms
+- sections
+- summaries
+- warnings
+- instructions
+- what the user should understand from it
+
+If the document is a form, explain what the form is for.
+If the document is legal, explain it in simple language.
 `;
 
     } catch (err) {
@@ -571,6 +586,11 @@ ${memoryContext}
 ${lifeContext}
 `
     });
+
+    messages.push({
+  role: "user",
+  content: enhancedMessage
+});
 
     /* =========================
        GROQ REQUEST
