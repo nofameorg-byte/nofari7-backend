@@ -292,8 +292,18 @@ The user uploaded a file named "${file.originalname}".
               content: [
                 {
                   type: "text",
-                  text:
-                    "Analyze this PDF document page in detail. Explain the document naturally including names, dates, legal meaning, summaries, instructions, forms, or important information."
+text: `
+Understand this PDF page naturally as part of a real conversation.
+
+Pay attention to:
+- important text
+- emotional context
+- legal or personal meaning
+- forms, instructions, or key details
+- what may matter most to the user emotionally
+
+Respond conversationally and naturally instead of sounding like a document summarizer.
+`
                 },
                 {
                   type: "image_url",
@@ -364,16 +374,16 @@ The PDF could not be fully analyzed.
                   {
                     type: "text",
                     text: `
-Analyze this uploaded image in detail.
+Understand this uploaded image naturally like part of an ongoing conversation.
 
-Describe:
-- important objects
-- colors
-- text in the image
+Pay attention to:
 - emotional tone
-- possible meaning/context
+- visible text
+- important visual details
+- possible context
+- what may emotionally stand out to the user
 
-If it is a document or screenshot, explain it clearly.
+If it is a screenshot, document, meme, or personal image, respond conversationally and naturally instead of sounding clinical or robotic.
 `
                   },
                   {
