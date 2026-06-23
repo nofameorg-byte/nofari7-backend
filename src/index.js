@@ -697,6 +697,12 @@ try {
     }
   );
 
+if (!voiceResponse.ok) {
+  const errText = await voiceResponse.text();
+  console.log("ELEVENLABS FAILED:", errText);
+  throw new Error(errText);
+}
+ 
   const buffer = Buffer.from(await voiceResponse.arrayBuffer());
 
   fs.writeFileSync(audioPath, buffer);

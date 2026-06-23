@@ -51,5 +51,5 @@ export async function generateVoice(text) {
   fs.writeFileSync(filepath, buffer);
 
   // Frontend expects a URL
-  return `/audio/${filename}`;
+  return `https://nofari7-backend.onrender.com/audio/${filename}`;
 }
