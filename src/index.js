@@ -662,6 +662,9 @@ ${lifeContext}
 
     const data = await groqResponse.json();
 
+    console.log("GROQ STATUS:", groqResponse.status);
+    console.log("GROQ DATA:", JSON.stringify(data));
+   
     const reply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
