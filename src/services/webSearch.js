@@ -21,7 +21,7 @@ function canSearch() {
   searchCount++;
   return true;
 }
-export async function searchWeb(query) {
+export async function searchWeb(query, options = {}) {
   if (!process.env.TAVILY_API_KEY) {
     console.warn("Tavily API key not configured");
     return [];
@@ -46,8 +46,13 @@ if (!canSearch()) {
       },
       body: JSON.stringify({
         query: query.trim().slice(0, 300),
-        search_depth: "basic",
-        max_results: 4,
+        
+search_depth: "basic",
+max_results: 4,
+...(options.news === true
+  ? { topic: "news", time_range: "week" }
+  : {}),
+
         include_answer: false,
         include_raw_content: false,
         include_images: false
