@@ -11,6 +11,41 @@ import { NOFARI_DIRECTIVES } from "./config/directives.js";
 import multer from "multer";
 import * as pdfToImg from "pdf-to-img";
 
+
+
+function prepareTextForSpeech(text) {
+  if (typeof text !== "string") return "";
+
+  return text
+    // Remove Markdown code blocks.
+    .replace(/```[\s\S]*?```/g, " ")
+
+    // Convert multiplication equations into spoken math.
+    .replace(/(\d+)\s*[×xX*]\s*(\d+)/g, "$1 times $2")
+    .replace(/(\d+)\s*÷\s*(\d+)/g, "$1 divided by $2")
+    .replace(/(\d+)\s*\+\s*(\d+)/g, "$1 plus $2")
+    .replace(/(\d+)\s*=\s*(\d+)/g, "$1 equals $2")
+
+    // Remove Markdown formatting.
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+
+    // Make Markdown tables easier to speak.
+    .replace(/^\s*\|?[\s:|-]+\|[\s:|-]*$/gm, "")
+    .replace(/\s*\|\s*/g, ", ")
+
+    // Remove decorative separators and leftover formatting.
+    .replace(/^\s*[-_*]{3,}\s*$/gm, "")
+    .replace(/[*#]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+
 const app = express();
 
 app.use(cors());
@@ -690,8 +725,8 @@ try {
         Accept: "audio/mpeg"
       },
       body: JSON.stringify({
-        text: reply,
-        model_id: "eleven_multilingual_v2",
+  text: prepareTextForSpeech(reply),
+  model_id: "eleven_multilingual_v2",
         voice_settings: {
           stability: 0.45,
           similarity_boost: 0.75
