@@ -12,7 +12,7 @@ import multer from "multer";
 import * as pdfToImg from "pdf-to-img";
 import { searchWeb } from "./services/webSearch.js";
 import { decideResearch } from "./services/researchDecision.js";
-
+import ariRouter from "./routes/ari.route.js";
 
 
 function prepareTextForSpeech(text) {
@@ -87,6 +87,7 @@ if (!fs.existsSync(AUDIO_DIR)) {
 }
 
 app.use("/audio", express.static(AUDIO_DIR));
+app.use("/ari", ariRouter);
 
 app.get("/", (req, res) => {
   res.send("NOFARI backend running");
