@@ -13,6 +13,7 @@ import * as pdfToImg from "pdf-to-img";
 import { searchWeb } from "./services/webSearch.js";
 import { decideResearch } from "./services/researchDecision.js";
 import ariRouter from "./routes/ari.route.js";
+import ariTranscribeRouter from "./routes/ari-transcribe.route.js";
 
 
 function prepareTextForSpeech(text) {
@@ -23,8 +24,8 @@ function prepareTextForSpeech(text) {
     .replace(/```[\s\S]*?```/g, " ")
 
     // Convert multiplication equations into spoken math.
-    .replace(/(\d+)\s*[×xX*]\s*(\d+)/g, "$1 times $2")
-    .replace(/(\d+)\s*÷\s*(\d+)/g, "$1 divided by $2")
+    .replace(/(\d+)\s*[Ã—xX*]\s*(\d+)/g, "$1 times $2")
+    .replace(/(\d+)\s*Ã·\s*(\d+)/g, "$1 divided by $2")
     .replace(/(\d+)\s*\+\s*(\d+)/g, "$1 plus $2")
     .replace(/(\d+)\s*=\s*(\d+)/g, "$1 equals $2")
 
@@ -88,6 +89,7 @@ if (!fs.existsSync(AUDIO_DIR)) {
 
 app.use("/audio", express.static(AUDIO_DIR));
 app.use("/ari", ariRouter);
+app.use("/ari/transcribe", ariTranscribeRouter);
 
 app.get("/", (req, res) => {
   res.send("NOFARI backend running");
