@@ -1,5 +1,7 @@
 import express from "express";
+import { timingSafeEqual } from "node:crypto";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 
 import { Blob } from "node:buffer";
 
@@ -10,7 +12,45 @@ const upload = multer({
   limits: { fileSize: 1024 * 1024 }
 });
 
-router.post("/", upload.single("audio"), async (req, res) => {
+/* ARI_SPEECH_AUTH_V1 */
+function requireAriAuth(req, res, next) {
+  const expected = process.env.ARI_DEVICE_TOKEN;
+  const supplied = req.get("X-ARI-Token");
+
+  if (!expected) {
+    return res.status(503).json({
+      error: "ARI authentication is not configured"
+    });
+  }
+
+  const expectedBuffer = Buffer.from(expected);
+  const suppliedBuffer = Buffer.from(supplied || "");
+
+  const authorized =
+    expectedBuffer.length === suppliedBuffer.length &&
+    timingSafeEqual(expectedBuffer, suppliedBuffer);
+
+  if (!authorized) {
+    return res.status(401).json({
+      error: "Unauthorized ARI device"
+    });
+  }
+
+  next();
+}
+
+/* ARI_SPEECH_RATE_LIMIT_V1 */
+const ariSpeechLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    error: "Too many ARI speech requests. Please wait."
+  }
+});
+
+router.post("/", requireAriAuth, ariSpeechLimiter, upload.single("audio"), async (req, res) => {
   try {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({
