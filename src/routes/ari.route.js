@@ -63,9 +63,20 @@ Be warm, intelligent, occasionally witty, and responsive to the user's mood.
     }
 
     const data = await groqResponse.json();
-    const reply =
+    const rawReply =
       data?.choices?.[0]?.message?.content ||
       "I'm here with you.";
+
+    // Convert common Markdown formatting into natural spoken text.
+    const reply = rawReply
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/__(.*?)__/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/^\s*[-*]\s+/gm, "")
+      .replace(/^\s*\d+[.)]\s+/gm, "")
+      .replace(/^\s*---+\s*$/gm, "")
+      .trim();
 
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}?output_format=pcm_16000`,
