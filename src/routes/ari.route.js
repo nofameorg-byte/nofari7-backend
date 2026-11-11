@@ -79,7 +79,8 @@ Be warm, intelligent, occasionally witty, and responsive to the user's mood.
       .replace(/^\s*\d+[.)]\s+/gm, "")
       .replace(/^\s*---+\s*$/gm, "")
       .trim();
-
+    // Pronounce ARI as "AH-ree" in robot speech.
+    const spokenReply = reply.replace(/\bARI\b/g, "Ah-ree");
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}?output_format=pcm_16000`,
       {
@@ -90,7 +91,7 @@ Be warm, intelligent, occasionally witty, and responsive to the user's mood.
           Accept: "application/octet-stream"
         },
         body: JSON.stringify({
-          text: reply,
+          text: spokenReply,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.45,
