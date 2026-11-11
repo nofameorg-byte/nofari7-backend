@@ -80,7 +80,7 @@ Be warm, intelligent, occasionally witty, and responsive to the user's mood.
       .replace(/^\s*---+\s*$/gm, "")
       .trim();
     // Pronounce ARI as "AH-ree" in robot speech.
-    const spokenReply = reply.replace(/\bARI\b/g, "Ah-ree");
+    const spokenReply = reply.replace(/\bARI\b/g, "Ari");
     const voiceResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}?output_format=pcm_16000`,
       {
