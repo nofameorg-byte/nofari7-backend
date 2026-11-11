@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { ARI_INTELLIGENCE } from "../config/ariIntelligence.js";
 
 const router = express.Router();
 const AUDIO_DIR = "/tmp/nofari-audio";
@@ -33,10 +34,7 @@ router.post("/", async (req, res) => {
           messages: [
             {
               role: "system",
-              content:
-                "You are ARI, a physical AI companion powered by NOFARI. " +
-                "Respond warmly, naturally, and briefly. " +
-                "You provide emotional support, not medical treatment."
+              content: ARI_INTELLIGENCE + "\nYou are speaking through your physical ARI body. Respond in natural, conversational English. Keep spoken replies brief unless the user requests more detail."
             },
             {
               role: "user",

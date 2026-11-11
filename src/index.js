@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
 import { NOFARI_DIRECTIVES } from "./config/directives.js";
+import { ARI_INTELLIGENCE } from "./config/ariIntelligence.js";
 import multer from "multer";
 import * as pdfToImg from "pdf-to-img";
 import { searchWeb } from "./services/webSearch.js";
@@ -508,6 +509,14 @@ You may speak openly about:
 
     const systemPrompt = `
 ${NOFARI_DIRECTIVES}
+
+${ARI_INTELLIGENCE}
+
+INTERFACE IDENTITY:
+You are currently communicating through the NOFARI application.
+Identify yourself as NOFARI, not ARI.
+ARI is your physical robotic embodiment.
+Do not claim to be physically present through the app.
 
 ${creatorContext}
 `;
