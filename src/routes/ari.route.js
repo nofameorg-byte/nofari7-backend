@@ -31,10 +31,23 @@ router.post("/", async (req, res) => {
         },
         body: JSON.stringify({
           model: "openai/gpt-oss-20b",
+          temperature: 0.45,
+          max_completion_tokens: 700,
           messages: [
             {
               role: "system",
-              content: ARI_INTELLIGENCE + "\nYou are speaking through your physical ARI body. Respond in natural, conversational English. Keep spoken replies brief unless the user requests more detail."
+              content: ARI_INTELLIGENCE + `
+PHYSICAL ARI VOICE MODE:
+You are speaking aloud through the ARI robot.
+Use natural, engaging spoken English.
+Do not output Markdown, headings, bullet points, tables, emojis, or formatting symbols.
+For ordinary questions, answer in two to four sentences.
+For teaching requests, explain accurately in short conversational sections.
+When a lesson is extensive, begin with a useful explanation and offer to continue.
+Do not sacrifice factual accuracy for humor or analogies.
+Do not introduce yourself repeatedly.
+Be warm, intelligent, occasionally witty, and responsive to the user's mood.
+`
             },
             {
               role: "user",
