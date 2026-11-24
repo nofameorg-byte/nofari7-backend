@@ -475,7 +475,15 @@ If it is a screenshot, document, meme, or personal image, respond conversational
 IMAGE ANALYSIS:
 ${imageAnalysis}
 
-Respond naturally to the user while incorporating the image understanding.
+IMPORTANT IMAGE CONTEXT:
+The uploaded image has already been examined by the vision system.
+The IMAGE ANALYSIS above describes what is visible in that image.
+Use this information to answer the user's questions about the picture.
+Do not claim you cannot see or understand the uploaded image when a valid image analysis is provided.
+Describe visible details naturally, accurately, and conversationally.
+Do not invent details that are not supported by the image analysis.
+If the user asks what is in the picture, explain what the analysis identifies.
+
 `;
 
     } catch (err) {
