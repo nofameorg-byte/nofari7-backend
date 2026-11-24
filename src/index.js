@@ -251,30 +251,52 @@ app.get("/circle-message", async (req, res) => {
 ========================= */
 
 app.post("/delete-user-data", async (req, res) => {
-
   try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
-    const { email } = req.body;
-
-    if (!email) {
-      return res.json({ success: false });
+    if (!token) {
+      return res.status(401).json({ success: false, error: "Authentication required" });
     }
 
-    await supabase.from("conversation_memory").delete().eq("email", email);
-    await supabase.from("user_memory").delete().eq("email", email);
-    await supabase.from("life_story_memory").delete().eq("email", email);
-    await supabase.from("emotion_log").delete().eq("email", email);
+    const { data, error } = await supabase.auth.getUser(token);
 
-    res.json({ success: true });
+    if (error || !data?.user?.email) {
+      return res.status(401).json({ success: false, error: "Invalid session" });
+    }
 
+    const email = data.user.email;
+    const userId = data.user.id;
+
+    for (const table of [
+      "conversation_memory",
+      "user_memory",
+      "life_story_memory",
+      "emotion_log"
+    ]) {
+      const { error: deleteError } = await supabase
+        .from(table)
+        .delete()
+        .eq("email", email);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+    }
+
+    const { error: accountError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (accountError) {
+      throw accountError;
+    }
+
+    return res.json({ success: true });
   } catch (err) {
-
-    console.log("DELETE USER DATA ERROR:", err);
-
-    res.json({ success: false });
-
+    console.error("DELETE USER DATA ERROR:", err);
+    return res.status(500).json({ success: false, error: "Account deletion failed" });
   }
-
 });
 
 /* =========================
