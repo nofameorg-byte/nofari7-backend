@@ -18,6 +18,42 @@ const RESEARCH_TOPICS = [
   {
     topic: "sleep",
     query: "site:nih.gov sleep mental health research"
+  },
+  {
+    topic: "heart_health",
+    query: "site:nhlbi.nih.gov heart disease symptoms prevention"
+  },
+  {
+    topic: "diabetes",
+    query: "site:niddk.nih.gov diabetes symptoms management"
+  },
+  {
+    topic: "high_blood_pressure",
+    query: "site:nhlbi.nih.gov high blood pressure symptoms prevention"
+  },
+  {
+    topic: "digestive_health",
+    query: "site:niddk.nih.gov digestive diseases symptoms"
+  },
+  {
+    topic: "respiratory_health",
+    query: "site:nhlbi.nih.gov lung diseases symptoms"
+  },
+  {
+    topic: "kidney_health",
+    query: "site:niddk.nih.gov kidney diseases symptoms"
+  },
+  {
+    topic: "medications",
+    query: "site:medlineplus.gov medicines side effects safety"
+  },
+  {
+    topic: "medical_tests",
+    query: "site:medlineplus.gov/lab-tests medical tests results"
+  },
+  {
+    topic: "general_diseases",
+    query: "site:medlineplus.gov diseases conditions symptoms"
   }
 ];
 
@@ -39,7 +75,9 @@ export async function runBackgroundResearch() {
         url.hostname !== "nih.gov" &&
         !url.hostname.endsWith(".nih.gov") &&
         url.hostname !== "cdc.gov" &&
-        !url.hostname.endsWith(".cdc.gov")
+        !url.hostname.endsWith(".cdc.gov") &&
+        url.hostname !== "medlineplus.gov" &&
+        !url.hostname.endsWith(".medlineplus.gov")
       ) {
         continue;
       }
