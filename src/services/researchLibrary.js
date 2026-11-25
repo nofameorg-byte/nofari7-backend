@@ -28,10 +28,13 @@ export async function saveResearch({
         published_at,
         verification_status: "pending"
       },
-      { onConflict: "topic,source_url" }
+      {
+        onConflict: "topic,source_url",
+        ignoreDuplicates: true
+      }
     )
     .select("id, topic, title, verification_status")
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
