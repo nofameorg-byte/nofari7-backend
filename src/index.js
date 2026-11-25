@@ -1,3 +1,4 @@
+import { startResearchJobs } from "./jobs/researchJobs.js";
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
@@ -915,5 +916,6 @@ app.listen(PORT, () => {
   console.log(`NOFARI backend running on port ${PORT}`);
 
   startCircleJobs();
+  startResearchJobs();
 
 });
