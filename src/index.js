@@ -513,6 +513,51 @@ if (!enhancedMessage.trim()) {
 }
 
     /* =========================
+       APPROVED PUBLIC RESPONSES
+    ========================= */
+
+    const publicQuestion = enhancedMessage
+      .toLowerCase()
+      .trim()
+      .replace(/[?!.,]+$/g, "")
+      .replace(/\s+/g, " ");
+
+    const approvedResponses = [
+      {
+        patterns: [
+          /^how (does|do) your (backend|back end|back-end) work$/,
+          /^how (does|do) nofari'?s (backend|back end|back-end) work$/,
+          /^explain your (backend|back end|back-end)$/
+        ],
+        reply: "My technology works behind the scenes to help me understand your messages and respond. 💙 The private technical details aren't public, but I can explain how AI works in general!"
+      },
+      {
+        patterns: [
+          /^(hey |hi |hello )?(girl[,! ]*)?tell me (a little |more )?about yourself$/,
+          /^who are you$/,
+          /^what are you$/
+        ],
+        reply: "Hey! I'm NOFARI, your AI companion! 💙 We can laugh, talk about life, learn something new, or work through whatever's on your mind. I'm here for the fun conversations and the serious ones!"
+      },
+      {
+        patterns: [
+          /^who created you$/,
+          /^who made you$/,
+          /^who developed nofari$/
+        ],
+        reply: "I was created as part of the NOFAME initiative to make supportive, helpful AI more accessible. 💙"
+      }
+    ];
+
+    const approvedAnswer = approvedResponses.find(item =>
+      item.patterns.some(pattern => pattern.test(publicQuestion))
+    );
+
+    if (approvedAnswer) {
+      return res.json({ reply: approvedAnswer.reply });
+    }
+
+    /* =========================
        CREATOR MODE
     ========================= */
 
