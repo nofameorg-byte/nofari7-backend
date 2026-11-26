@@ -8,8 +8,7 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { startCircleJobs } from "./jobs/circleJobs.js";
 import { getDailyCircleMessage } from "./services/circleDailyMessage.js";
-import { NOFARI_DIRECTIVES } from "./config/directives.js";
-import { ARI_INTELLIGENCE } from "./config/ariIntelligence.js";
+import { UNIFIED_INTELLIGENCE } from "./config/unifiedIntelligence.js";
 import multer from "multer";
 import * as pdfToImg from "pdf-to-img";
 import { searchWeb } from "./services/webSearch.js";
@@ -540,9 +539,9 @@ You may speak openly about:
     }
 
     const systemPrompt = `
-${NOFARI_DIRECTIVES}
+${UNIFIED_INTELLIGENCE}
 
-${ARI_INTELLIGENCE}
+
 
 INTERFACE IDENTITY:
 You are currently communicating through the NOFARI application.

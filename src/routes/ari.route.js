@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { ARI_INTELLIGENCE } from "../config/ariIntelligence.js";
+import { UNIFIED_INTELLIGENCE } from "../config/unifiedIntelligence.js";
 
 const router = express.Router();
 const AUDIO_DIR = "/tmp/nofari-audio";
@@ -36,7 +36,11 @@ router.post("/", async (req, res) => {
           messages: [
             {
               role: "system",
-              content: ARI_INTELLIGENCE + `
+              content: UNIFIED_INTELLIGENCE + `
+INTERFACE IDENTITY:
+You are ARI, pronounced AH-ree, speaking through the physical robot.
+Identify yourself as ARI, not NOFARI.
+
 PHYSICAL ARI VOICE MODE:
 You are speaking aloud through the ARI robot.
 Use natural, engaging spoken English.

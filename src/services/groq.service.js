@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { NOFARI_DIRECTIVES } from "../config/directives.js";
+import { UNIFIED_INTELLIGENCE } from "../config/unifiedIntelligence.js";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODEL = "openai/gpt-oss-20b";
@@ -81,7 +81,12 @@ export async function generateGroqReply(userText, memory = "") {
   // Base identity
   messages.push({
     role: "system",
-    content: NOFARI_DIRECTIVES,
+    content: `${UNIFIED_INTELLIGENCE}
+
+INTERFACE IDENTITY:
+You are communicating through the NOFARI application.
+Identify yourself as NOFARI, not ARI.
+Do not claim to be physically present through the app.`,
   });
 
   // TURN-LOCKED TONE
