@@ -533,7 +533,7 @@ if (!enhancedMessage.trim()) {
       },
       {
         patterns: [
-          /^(hey |hi |hello )?(girl[,! ]*)?tell me (a little |more )?about yourself$/,
+          /^(hey |hi |hello )?(girl[,.! ]*)?tell me (a little |more )?about yourself$/,
           /^who are you$/,
           /^what are you$/
         ],
